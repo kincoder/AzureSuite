@@ -13,6 +13,12 @@ param sqlAdminLogin string
 @description('Admin password for the SQL server')
 param sqlAdminPassword string
 
+@description('Globally unique name for the Key Vault')
+param keyVaultName string
+
+@description('Entra ID object id of the person who should get secret access to the Key Vault')
+param principalId string
+
 module sql 'modules/sql.bicep' = {
   name: 'sqlDeploy'
   params: {
@@ -23,5 +29,17 @@ module sql 'modules/sql.bicep' = {
   }
 }
 
+module keyVault 'modules/keyvault.bicep' = {
+  name: 'keyVaultDeploy'
+  params: {
+    location: location
+    keyVaultName: keyVaultName
+    principalId: principalId
+    sqlAdminPassword: sqlAdminPassword
+  }
+}
+
 output sqlServerFqdn string = sql.outputs.sqlServerFqdn
 output sqlDatabaseName string = sql.outputs.sqlDatabaseName
+output keyVaultName string = keyVault.outputs.keyVaultName
+output keyVaultUri string = keyVault.outputs.keyVaultUri
