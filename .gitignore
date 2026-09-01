@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 local.settings.json
 appsettings.Development.json
 .env
+
+# test coverage output
+TestResults/
