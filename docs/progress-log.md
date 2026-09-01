@@ -7,6 +7,23 @@ Read this file at the start of a new session to recover context without replayin
 whole conversation. Update it after each meaningful step (decision made, resource created,
 file added) — keep entries short and factual, not a transcript.
 
+## Code quality & testing rules (non-negotiable)
+
+- Hand-written code must be warning-free, nullable-enabled, no `#pragma warning disable`
+  suppressions. Exception: EF Core migration `*.Designer.cs` / `*ModelSnapshot.cs` files —
+  these are tool-generated, always carry `#nullable disable` and
+  `#pragma warning disable 612, 618` by EF's own convention, and must never be hand-edited.
+  Do not "fix" those files; only regenerate them via `dotnet ef migrations add/remove`.
+- Every code file should be clean and organized; comment only non-obvious *why*, not *what*.
+- **Testing convention**: for each `src/X.Y` project, there is a matching `tests/X.Y.Tests`
+  project (xUnit + FluentAssertions + coverlet.collector for coverage). The test project's
+  folder structure mirrors the source project's 1:1 (e.g. `Entities/User.cs` →
+  `Entities/UserTests.cs`), one test class per production class, aiming for high coverage.
+  Composition-root files (`Program.cs`) are exempt from this per-class rule — they get
+  covered later via integration tests (e.g. `WebApplicationFactory`), not unit tests.
+  Run `dotnet test --collect:"XPlat Code Coverage" --results-directory ./TestResults` to
+  generate `coverage.cobertura.xml` reports (gitignored).
+
 ## Ground rules for this project
 
 - One step at a time. Explain the *why* behind Azure setup, not just paste code —
