@@ -95,6 +95,40 @@ All in resource group **rg-azuresuite-dev** (West Europe), created manually via 
 Not yet created: Cosmos DB (Mongo API) for logs, Service Bus, Azure Functions app,
 App Service (API + Web), Application Insights / Log Analytics, Entra ID app registration for SSO.
 
+## RBAC concepts covered (for reference)
+
+- A **role assignment** (principal + role definition + scope) is a child object of whatever
+  it's scoped to (e.g. our Key Vault role assignment lives under the vault; delete the vault,
+  the assignment goes too). A **role definition** (e.g. "Key Vault Secrets Officer",
+  guid `b86a8fe4-44ce-4948-aee5-eccb2c155cd7`) is tenant-wide for built-ins — Microsoft ships
+  the same definitions everywhere; it's referenced by assignments, not owned by any resource.
+- Central place to view assignments: Portal → any scope → **Access control (IAM)** →
+  Role assignments tab (also lists ones inherited from higher scopes). Role *definitions*
+  (all built-ins + custom) are under the **Roles** tab there. Entra ID (its own Portal blade)
+  manages identities themselves (users/groups/app registrations) — a related but separate
+  system from RBAC, which consumes those identities.
+- SQL Server has **two separate access layers**: Azure RBAC on `Microsoft.Sql/servers`
+  (management plane — firewall rules, scaling, etc.) vs. data-plane login to actually query
+  data (SQL auth username/password, or Entra ID auth). These don't overlap.
+- `az.getSecret()` in a `.bicepparam` file is resolved by **Azure Resource Manager's own
+  first-party service principal** at deployment time, not by the CLI user's own login —
+  this requires the vault to have `enabledForTemplateDeployment: true`, a permission
+  separate from any RBAC role granted to a human user. Hit this as
+  `KeyVaultParameterReferenceSecretRetrieveFailed` on first deploy; fixed by adding that
+  property to `modules/keyvault.bicep`.
+
+## SQL Entra ID (Azure AD) authentication
+
+- Added `Microsoft.Sql/servers/administrators` (type `ActiveDirectory`) in
+  `modules/sql.bicep`, pointing at the same Entra object id used for the Key Vault RBAC
+  role. This runs **alongside** the existing `sqladmin` SQL-auth login, not replacing it.
+- Test it: Portal → `azuresuite` database → Query editor (preview) → choose
+  "Microsoft Entra authentication" instead of SQL login — no password needed.
+- Not yet done: fully retiring SQL auth (`azureADOnlyAuthentication`), and wiring
+  app/Functions managed identities as additional Entra SQL users — planned for when
+  the API/Functions are deployed to Azure (managed identity is the passwordless pattern
+  for service-to-service auth, covered when we get there).
+
 ## Tooling installed on this machine
 
 - .NET 10 SDK
