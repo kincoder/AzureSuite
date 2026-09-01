@@ -106,15 +106,49 @@ az deployment group create --resource-group rg-azuresuite-dev --template-file in
 
 ## Open items / next steps
 
-1. **EF Core + SQL**: add a first Domain entity (e.g. `User`), a `DbContext` in
-   Infrastructure, wire a connection string (built from `sqlServerFqdn` output +
-   Key Vault secret), add first migration, apply against the real Azure SQL database.
+1. ~~EF Core + SQL~~ — done, see below.
 2. Auth: ASP.NET Identity + JWT issuing in the API (register/login).
 3. Mongo logging: start with local container, later Cosmos DB (Mongo API, free tier).
 4. Blazor Web: SSO via Entra ID app registration.
 5. Service Bus + Functions wiring.
 6. Application Insights / Log Analytics.
 7. GitHub Actions pipeline (deploy infra + apps).
+
+## EF Core + SQL (done)
+
+- `AzureSuite.Domain/Entities/User.cs` — minimal entity: `Id`, `Email` (unique index),
+  `PasswordHash`, `CreatedAt`.
+- `AzureSuite.Infrastructure/Persistence/AppDbContext.cs` — `DbSet<User>`, configures the
+  unique index + max lengths in `OnModelCreating`.
+- EF Core packages: `Microsoft.EntityFrameworkCore.SqlServer` + `.Design` on Infrastructure
+  (Design is `PrivateAssets=all`, tooling-only) — **and also on `AzureSuite.Api`**, because
+  `dotnet ef` needs Design directly on the *startup* project, it doesn't flow transitively.
+- Connection string lives in **.NET User Secrets** on `AzureSuite.Api` (key
+  `ConnectionStrings:AzureSuiteDb`), never in `appsettings.json` or git. Built by reading
+  the password straight out of Key Vault into a PowerShell variable and setting the secret
+  in one step — the password itself never appeared in any transcript/log.
+  To recreate on a new machine:
+  ```powershell
+  $sqlPassword = az keyvault secret show --vault-name kv-azsuite-dev-pumpkin --name sql-admin-password --query "value" -o tsv
+  $connString = "Server=tcp:sql-azuresuite-dev-pumpkin.database.windows.net,1433;Database=azuresuite;User ID=sqladmin;Password=$sqlPassword;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+  cd src/AzureSuite.Api
+  dotnet user-secrets set "ConnectionStrings:AzureSuiteDb" "$connString"
+  ```
+- `dotnet-ef` installed as a global tool (`dotnet tool install --global dotnet-ef`).
+- Local machine's public IP was allow-listed on the SQL server firewall (separate from the
+  Bicep-managed `AllowAzureServices` rule, since home IPs change):
+  ```powershell
+  az sql server firewall-rule create --resource-group rg-azuresuite-dev --server sql-azuresuite-dev-pumpkin --name AllowMyDevMachine --start-ip-address <ip> --end-ip-address <ip>
+  ```
+  If SQL connections start failing with a network-ish error, re-run this with your current IP.
+- `Program.cs` registers `AppDbContext` via `AddDbContext` with `EnableRetryOnFailure()` —
+  required because the database is **serverless** and auto-pauses after 60 min idle; the
+  first connection after a pause throws a transient SQL error (40613) while it resumes
+  (~30-60s), which the retry policy absorbs.
+- Migration `InitialCreate` created and applied directly against the real Azure SQL
+  database (not a local one) — this project intentionally develops against the live
+  free-tier resource rather than a local SQL container, to stay close to what "testing
+  against real Azure" looks like.
 
 ## Session recovery checklist
 
