@@ -19,6 +19,9 @@ param keyVaultName string
 @description('Entra ID object id of the person who should get secret access to the Key Vault')
 param principalId string
 
+@description('UPN (login name) of the Entra ID principal to set as the SQL server Entra admin')
+param aadAdminLogin string
+
 module sql 'modules/sql.bicep' = {
   name: 'sqlDeploy'
   params: {
@@ -26,6 +29,8 @@ module sql 'modules/sql.bicep' = {
     sqlServerName: sqlServerName
     sqlAdminLogin: sqlAdminLogin
     sqlAdminPassword: sqlAdminPassword
+    aadAdminLogin: aadAdminLogin
+    aadAdminObjectId: principalId
   }
 }
 

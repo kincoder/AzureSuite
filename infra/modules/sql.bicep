@@ -14,6 +14,12 @@ param sqlAdminLogin string
 @description('Admin password for the SQL server')
 param sqlAdminPassword string
 
+@description('Display name (UPN) of the Entra ID principal to set as SQL Entra admin')
+param aadAdminLogin string
+
+@description('Entra ID object id (SID) of that principal')
+param aadAdminObjectId string
+
 resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
   name: sqlServerName
   location: location
@@ -52,6 +58,21 @@ resource allowAzureServices 'Microsoft.Sql/servers/firewallRules@2023-08-01-prev
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
+  }
+}
+
+// Grants this Entra ID principal centralized, passwordless authentication to the
+// server (via az/SSMS/EF Core "Active Directory" auth modes) alongside the existing
+// SQL-auth admin login. This does not remove the SQL login - see azureADOnlyAuthentication
+// if/when we want to retire SQL auth entirely.
+resource aadAdmin 'Microsoft.Sql/servers/administrators@2023-08-01-preview' = {
+  parent: sqlServer
+  name: 'ActiveDirectory'
+  properties: {
+    administratorType: 'ActiveDirectory'
+    login: aadAdminLogin
+    sid: aadAdminObjectId
+    tenantId: subscription().tenantId
   }
 }
 

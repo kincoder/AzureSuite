@@ -23,6 +23,10 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
+    // Required for az.getSecret() references in .bicepparam files: ARM's own
+    // first-party service principal resolves those at deployment time and needs
+    // this flag set on the vault, separate from any RBAC role granted to a user.
+    enabledForTemplateDeployment: true
   }
 }
 
