@@ -8,6 +8,7 @@
     <Project Path="src/AzureSuite.Web/AzureSuite.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/AzureSuite.Application.Tests/AzureSuite.Application.Tests.csproj" />
     <Project Path="tests/AzureSuite.Domain.Tests/AzureSuite.Domain.Tests.csproj" />
     <Project Path="tests/AzureSuite.Infrastructure.Tests/AzureSuite.Infrastructure.Tests.csproj" />
   </Folder>
