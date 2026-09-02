@@ -56,14 +56,15 @@ file added) — keep entries short and factual, not a transcript.
 ```
 AzureSuite.slnx
 src/
-  AzureSuite.Api/            → Web API (register/login, JWT) — not yet implemented
+  AzureSuite.Api/            → Web API — will validate Entra ID JWTs (no app-owned auth) — not yet wired
   AzureSuite.Web/            → Blazor Server UI (SSO) — not yet implemented
   AzureSuite.Functions/      → isolated-worker Azure Functions — not yet implemented
-  AzureSuite.Domain/         → entities — empty scaffold (Class1.cs) so far
+  AzureSuite.Domain/         → Entities/Pacs008Message.cs, Enums/MessageStatus.cs, ValueObjects/PartyAccount.cs
   AzureSuite.Application/    → use cases/interfaces — empty scaffold so far
-  AzureSuite.Infrastructure/ → EF Core, Mongo, Service Bus clients — empty scaffold so far
+  AzureSuite.Infrastructure/ → Persistence/AppDbContext.cs (EF Core, SQL Server) + Migrations/
 tests/
-  AzureSuite.Tests/
+  AzureSuite.Domain.Tests/         → mirrors AzureSuite.Domain (xUnit + FluentAssertions)
+  AzureSuite.Infrastructure.Tests/ → mirrors AzureSuite.Infrastructure (+ EF Core InMemory provider)
 infra/
   main.bicep                 → orchestrator, resource-group scoped
   main.dev.bicepparam        → dev environment's actual parameter values (committed;
@@ -157,20 +158,52 @@ az deployment group create --resource-group rg-azuresuite-dev --template-file in
 
 ## Open items / next steps
 
-1. ~~EF Core + SQL~~ — done, see below.
-2. Auth: ASP.NET Identity + JWT issuing in the API (register/login).
-3. Mongo logging: start with local container, later Cosmos DB (Mongo API, free tier).
-4. Blazor Web: SSO via Entra ID app registration.
-5. Service Bus + Functions wiring.
-6. Application Insights / Log Analytics.
-7. GitHub Actions pipeline (deploy infra + apps).
+1. ~~EF Core + SQL~~ — done, see below (superseded once by the domain pivot, both done).
+2. **Auth, revised direction**: API is a resource server validating Entra ID-issued JWTs
+   (`AddAuthentication().AddJwtBearer(...)` against the tenant) — no app-owned user store,
+   no custom register/login/password hashing. Needs: an **App Registration** in Entra ID
+   for the API (Portal walkthrough, not yet done), then wiring `Microsoft.Identity.Web` or
+   plain JWT bearer config in `Program.cs`, then `[Authorize]` on message endpoints.
+3. Domain pivoted from generic `User` CRUD to **PACS.008 payment messages** (see below) —
+   a much better fit for the Service Bus/Functions/Mongo pipeline than a CRUD user table.
+4. Mongo logging: start with local container, later Cosmos DB (Mongo API, free tier) —
+   likely storing the raw message payload/audit trail, complementing the SQL record.
+5. Blazor Web: SSO via the same Entra ID app registration (or a separate one for
+   interactive users vs. the API's own registration — decide when we get there).
+6. Service Bus + Functions wiring: API receives a message → publishes to Service Bus →
+   Function consumes → persists to Mongo (audit) + SQL (reference/settlement data).
+7. Application Insights / Log Analytics — trace the whole pipeline end to end.
+8. GitHub Actions pipeline (deploy infra + apps).
 
-## EF Core + SQL (done)
+## Domain pivot: User/auth → PACS.008 messages (2026-09-02)
 
-- `AzureSuite.Domain/Entities/User.cs` — minimal entity: `Id`, `Email` (unique index),
-  `PasswordHash`, `CreatedAt`.
-- `AzureSuite.Infrastructure/Persistence/AppDbContext.cs` — `DbSet<User>`, configures the
-  unique index + max lengths in `OnModelCreating`.
+Original plan had the API doing its own register/login/password-hashing/JWT-issuing. On
+reflection (mid-build, after the User entity + migration were already applied to Azure SQL):
+if the goal is **SSO**, Entra ID should be the *only* identity source — an app-owned user
+table with passwords defeats the point of SSO and duplicates what Entra ID already does.
+So: the API will validate Entra ID-issued tokens (resource server), not manage users itself.
+
+Separately, decided the business domain itself should be more realistic/interesting than
+generic CRUD entities, to give Service Bus/Functions/Mongo a genuine reason to exist. Landed
+on a simplified **ISO 20022 pacs.008** (FIToFICustomerCreditTransfer) payment message:
+`Pacs008Message` (MessageId, EndToEndId, Amount, Currency, RemittanceInformation, Status,
+timestamps) with `Debtor`/`Creditor` as an EF Core **owned type** (`PartyAccount`: Name,
+Iban, BicCode) — flattened into columns on the same table (`DebtorName`, `DebtorIban`, etc.),
+not a separate table, since a party has no identity/lifecycle independent of its message.
+
+Mechanically: rolled back the old `Users` migration (`dotnet ef database update 0`), removed
+it (`dotnet ef migrations remove`), replaced the entity + `AppDbContext` config, wrote new
+tests first (`Pacs008MessageTests`, updated `AppDbContextTests`), then generated and applied
+a fresh `InitialCreate` migration against the same live Azure SQL database.
+
+## EF Core + SQL (done; entity superseded, tooling/setup below still accurate)
+
+Originally built against a `User` entity; superseded by the domain pivot above
+(`Pacs008Message`) but the EF Core plumbing/tooling notes below are unchanged.
+
+- `AzureSuite.Domain/Entities/Pacs008Message.cs` — see domain pivot section above.
+- `AzureSuite.Infrastructure/Persistence/AppDbContext.cs` — `DbSet<Pacs008Message>`,
+  configures the unique index on `MessageId` + owned-type mapping for Debtor/Creditor.
 - EF Core packages: `Microsoft.EntityFrameworkCore.SqlServer` + `.Design` on Infrastructure
   (Design is `PrivateAssets=all`, tooling-only) — **and also on `AzureSuite.Api`**, because
   `dotnet ef` needs Design directly on the *startup* project, it doesn't flow transitively.
