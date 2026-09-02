@@ -1,6 +1,33 @@
-@AzureSuite.Api_HostAddress = http://localhost:5286
+@AzureSuite.Api_HostAddress = https://localhost:7291
 
-GET {{AzureSuite.Api_HostAddress}}/weatherforecast/
+### Paste a fresh token here (never commit a real value - get one via:
+### az account get-access-token --resource api://edd37b21-2fdb-401b-992b-96723111682a --query accessToken -o tsv
+@token = PASTE_TOKEN_HERE
+
+### List messages
+GET {{AzureSuite.Api_HostAddress}}/api/messages
+Authorization: Bearer {{token}}
 Accept: application/json
 
-###
+### Create a message
+POST {{AzureSuite.Api_HostAddress}}/api/messages
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "messageId": "MSG-0002",
+  "endToEndId": "E2E-0002",
+  "amount": 250.00,
+  "currency": "EUR",
+  "debtorName": "Alice",
+  "debtorIban": "DE89370400440532013000",
+  "debtorBic": "COBADEFFXXX",
+  "creditorName": "Bob",
+  "creditorIban": "FR1420041010050500013M02606",
+  "creditorBic": "PSSTFRPPXXX",
+  "remittanceInformation": "Invoice 42"
+}
+
+### No token - should return 401
+GET {{AzureSuite.Api_HostAddress}}/api/messages
+Accept: application/json

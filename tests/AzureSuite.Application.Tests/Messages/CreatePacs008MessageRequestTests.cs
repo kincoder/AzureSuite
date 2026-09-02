@@ -1,60 +1,86 @@
 using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using AzureSuite.Application.Messages;
 using FluentAssertions;
 
 namespace AzureSuite.Application.Tests.Messages;
 
+/// <summary>
+/// Verifies validation attributes on CreatePacs008MessageRequest's primary constructor
+/// parameters directly via reflection, rather than via
+/// System.ComponentModel.DataAnnotations.Validator.TryValidateObject.
+///
+/// Why: ASP.NET Core's MVC model binder reads validation metadata from a record's
+/// constructor PARAMETERS (required for [ApiController] auto-validation to work at all -
+/// see the comment on CreatePacs008MessageRequest). Validator.TryValidateObject instead
+/// reads metadata from the record's generated PROPERTIES via TypeDescriptor, so it can't
+/// see attributes that only exist on the parameters - it would silently report zero
+/// errors regardless of input. Testing via the actual attribute placement (the parameter)
+/// is what proves the API's validation will actually fire.
+/// </summary>
 public class CreatePacs008MessageRequestTests
 {
-    private static CreatePacs008MessageRequest CreateValidRequest() => new(
-        MessageId: "MSG-0001",
-        EndToEndId: "E2E-0001",
-        Amount: 100.50m,
-        Currency: "EUR",
-        DebtorName: "Alice",
-        DebtorIban: "DE89370400440532013000",
-        DebtorBic: "COBADEFFXXX",
-        CreditorName: "Bob",
-        CreditorIban: "FR1420041010050500013M02606",
-        CreditorBic: "PSSTFRPPXXX",
-        RemittanceInformation: null);
+    private static ParameterInfo GetParameter(string name) =>
+        typeof(CreatePacs008MessageRequest)
+            .GetConstructors().Single()
+            .GetParameters().Single(p => p.Name == name);
 
-    private static IList<ValidationResult> Validate(CreatePacs008MessageRequest request)
+    [Theory]
+    [InlineData(nameof(CreatePacs008MessageRequest.MessageId), 35)]
+    [InlineData(nameof(CreatePacs008MessageRequest.EndToEndId), 35)]
+    [InlineData(nameof(CreatePacs008MessageRequest.DebtorName), 140)]
+    [InlineData(nameof(CreatePacs008MessageRequest.DebtorIban), 34)]
+    [InlineData(nameof(CreatePacs008MessageRequest.DebtorBic), 11)]
+    [InlineData(nameof(CreatePacs008MessageRequest.CreditorName), 140)]
+    [InlineData(nameof(CreatePacs008MessageRequest.CreditorIban), 34)]
+    [InlineData(nameof(CreatePacs008MessageRequest.CreditorBic), 11)]
+    public void Field_HasExpectedMaxLength(string parameterName, int expectedMaxLength)
     {
-        var results = new List<ValidationResult>();
-        Validator.TryValidateObject(request, new ValidationContext(request), results, validateAllProperties: true);
-        return results;
+        var attribute = GetParameter(parameterName).GetCustomAttribute<StringLengthAttribute>();
+
+        attribute.Should().NotBeNull();
+        attribute!.MaximumLength.Should().Be(expectedMaxLength);
+    }
+
+    [Theory]
+    [InlineData(nameof(CreatePacs008MessageRequest.MessageId))]
+    [InlineData(nameof(CreatePacs008MessageRequest.EndToEndId))]
+    [InlineData(nameof(CreatePacs008MessageRequest.Currency))]
+    [InlineData(nameof(CreatePacs008MessageRequest.DebtorName))]
+    [InlineData(nameof(CreatePacs008MessageRequest.DebtorIban))]
+    [InlineData(nameof(CreatePacs008MessageRequest.DebtorBic))]
+    [InlineData(nameof(CreatePacs008MessageRequest.CreditorName))]
+    [InlineData(nameof(CreatePacs008MessageRequest.CreditorIban))]
+    [InlineData(nameof(CreatePacs008MessageRequest.CreditorBic))]
+    public void Field_IsRequired(string parameterName)
+    {
+        GetParameter(parameterName).GetCustomAttribute<RequiredAttribute>().Should().NotBeNull();
     }
 
     [Fact]
-    public void ValidRequest_HasNoValidationErrors()
+    public void RemittanceInformation_IsNotRequired()
     {
-        var request = CreateValidRequest();
-
-        Validate(request).Should().BeEmpty();
+        GetParameter(nameof(CreatePacs008MessageRequest.RemittanceInformation))
+            .GetCustomAttribute<RequiredAttribute>()
+            .Should().BeNull();
     }
 
     [Fact]
-    public void EndToEndId_LongerThan35Chars_FailsValidation()
+    public void Currency_MustBeExactly3Characters()
     {
-        var request = CreateValidRequest() with { EndToEndId = new string('a', 36) };
+        var attribute = GetParameter(nameof(CreatePacs008MessageRequest.Currency)).GetCustomAttribute<StringLengthAttribute>();
 
-        Validate(request).Should().Contain(r => r.MemberNames.Contains(nameof(CreatePacs008MessageRequest.EndToEndId)));
+        attribute.Should().NotBeNull();
+        attribute!.MaximumLength.Should().Be(3);
+        attribute.MinimumLength.Should().Be(3);
     }
 
     [Fact]
-    public void Currency_NotExactly3Chars_FailsValidation()
+    public void Amount_MustBePositive()
     {
-        var request = CreateValidRequest() with { Currency = "EURO" };
+        var attribute = GetParameter(nameof(CreatePacs008MessageRequest.Amount)).GetCustomAttribute<RangeAttribute>();
 
-        Validate(request).Should().Contain(r => r.MemberNames.Contains(nameof(CreatePacs008MessageRequest.Currency)));
-    }
-
-    [Fact]
-    public void Amount_Zero_FailsValidation()
-    {
-        var request = CreateValidRequest() with { Amount = 0 };
-
-        Validate(request).Should().Contain(r => r.MemberNames.Contains(nameof(CreatePacs008MessageRequest.Amount)));
+        attribute.Should().NotBeNull();
+        Convert.ToDecimal(attribute!.Minimum).Should().Be(0.01m);
     }
 }
