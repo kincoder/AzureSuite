@@ -3,6 +3,16 @@
 This is a study-case C# solution to hands-on learn most of Azure: API auth, SSO UI,
 SQL + Mongo, Service Bus, Functions, App Insights, and IaC (Bicep) + CI/CD (GitHub Actions).
 
+## Milestone (2026-09-02): end-to-end flow working
+
+Sign in on the Blazor Web UI (Entra ID) → submit a PACS.008 message via the form →
+Web calls the API with an acquired token → API validates it, runs it through the
+Application/Infrastructure layers → persisted to Azure SQL → shows up in the list on
+reload. All pieces (SSO, JWT-secured API, DDD layering, EF Core, IaC-provisioned
+resources) are connected and verified working together for the first time here.
+35 unit tests passing. Next phase moves into messaging (Service Bus/Functions)
+and observability (App Insights) rather than further hardening this slice.
+
 Read this file at the start of a new session to recover context without replaying the
 whole conversation. Update it after each meaningful step (decision made, resource created,
 file added) — keep entries short and factual, not a transcript.
@@ -158,18 +168,20 @@ az deployment group create --resource-group rg-azuresuite-dev --template-file in
 
 ## Open items / next steps
 
-1. ~~EF Core + SQL~~ — done, see below (superseded once by the domain pivot, both done).
+1. ~~EF Core + SQL~~ — done.
 2. ~~Auth, revised direction~~ — done, see "Entra ID auth (done)" below.
-3. Domain pivoted from generic `User` CRUD to **PACS.008 payment messages** (see below) —
-   a much better fit for the Service Bus/Functions/Mongo pipeline than a CRUD user table.
-4. Mongo logging: start with local container, later Cosmos DB (Mongo API, free tier) —
+3. ~~Domain pivot to PACS.008~~ — done, see below.
+4. ~~DDD layering (repository + service)~~ — done, see below.
+5. ~~Blazor Web UI: SSO, call API, list/create messages~~ — done, see
+   "Blazor Web UI (done)" below. Milestone reached 2026-09-02: full flow verified working.
+6. Mongo logging: start with local container, later Cosmos DB (Mongo API, free tier) —
    likely storing the raw message payload/audit trail, complementing the SQL record.
-5. Blazor Web: SSO via the same Entra ID app registration (or a separate one for
-   interactive users vs. the API's own registration — decide when we get there).
-6. Service Bus + Functions wiring: API receives a message → publishes to Service Bus →
+7. Service Bus + Functions wiring: API receives a message → publishes to Service Bus →
    Function consumes → persists to Mongo (audit) + SQL (reference/settlement data).
-7. Application Insights / Log Analytics — trace the whole pipeline end to end.
-8. GitHub Actions pipeline (deploy infra + apps).
+8. Application Insights / Log Analytics — trace the whole pipeline end to end.
+9. GitHub Actions pipeline (deploy infra + apps).
+10. Hardening (not urgent): retire SQL password entirely (`azureADOnlyAuthentication`),
+    integration tests for `[Authorize]`/scopes via `WebApplicationFactory`.
 
 ## Entra ID auth (done)
 
@@ -219,9 +231,86 @@ smell. Fixed with standard DDD/Clean Architecture layering:
   `Pacs008MessageRepositoryTests` (EF Core InMemory). 15 tests total across 3 test
   projects, all passing.
 
-**Still open**: there's no UI to exercise the API yet ("SCADA-like" testing view was
-explicitly requested) — planned as the next step, needs its own Entra ID app
-registration/auth flow decision (see open items below).
+## Blazor Web UI (done, 2026-09-02)
+
+Built the UI to actually exercise the API (was previously curl/Scalar-only). Full flow
+verified working end-to-end: sign in → submit message via form → list refreshes.
+
+- **Separate Entra ID app registration** `AzureSuite-Web` (client id
+  `c2f4de7f-9ffd-4e6f-93bf-ced2f2978da3`), redirect URI `https://localhost:7081/signin-oidc`,
+  own client secret — deliberately separate from `AzureSuite-Api`: the API is a resource
+  server (no redirect URI, validates tokens), the Web app is a client (signs users in,
+  acquires tokens on their behalf). Client secret stored in Key Vault as `web-client-secret`
+  (not `spn-azuresuite-web-secret`, renamed to match the `{resource}-{purpose}` convention
+  — see naming convention note below), read via a custom `KeyVaultSecretManager` mapping
+  explicit secret names to config keys rather than relying on Key Vault's `--`→`:`
+  auto-mapping convention (which would force ugly secret names).
+- **API Permissions**: delegated `Messages.ReadWrite` on `AzureSuite-Api`, admin consent
+  granted tenant-wide.
+- Packages: `Microsoft.Identity.Web`, `.UI` (sign-in/out endpoints,
+  `/MicrosoftIdentity/Account/SignOut`), `.DownstreamApi` (`IDownstreamApi.CallApiForUserAsync`
+  for calling the API with an acquired token).
+- `Components/Pages/Messages.razor` — list + create form, calls the API via `IDownstreamApi`.
+- `Components/Layout/UserMenu.razor` — avatar-circle-with-dropdown (name/email + sign out),
+  replacing a plain inline text+link.
+- `builder.Services.AddAuthorization(options => options.FallbackPolicy = ...RequireAuthenticatedUser())`
+  — every page requires sign-in, no anonymous content in this app.
+
+### Gotchas hit and fixed (worth remembering)
+
+1. **`DefaultAzureCredential` is very slow locally** (10-20s+) — it probes Managed Identity's
+   IMDS endpoint, which doesn't exist on a dev machine, before falling back through several
+   more credential types to `AzureCliCredential`. Fixed by branching:
+   `builder.Environment.IsDevelopment() ? new AzureCliCredential() : new DefaultAzureCredential()`
+   — full chain (including Managed Identity) still used automatically once actually deployed.
+2. **This Bash tool session's `PATH` doesn't auto-refresh** after installing CLIs via winget
+   in a separate PowerShell call — `az` wasn't found when spawning `dotnet run` from Bash,
+   causing `AzureCliCredential authentication failed: Azure CLI not installed` even though
+   `az` works fine from PowerShell. Fixed by prepending the winget install path
+   (`/c/Program Files/Microsoft SDKs/Azure/CLI2/wbin`) to `PATH` in the Bash session before
+   running `dotnet run`.
+3. **`DownstreamApiOptions.Scopes` binds to `List<string>`** — a plain JSON string in
+   `appsettings.json` (`"Scopes": "api://.../Messages.ReadWrite"`) silently binds to `null`
+   instead of erroring, so no token gets attached at all. Must be a JSON array:
+   `"Scopes": [ "api://.../Messages.ReadWrite" ]`. Silent failure surfaced as
+   `[MsIdWeb] An unauthenticated call was made to the Api with null Scopes` in the log,
+   and a plain 401 with no other clue in the UI.
+4. **`EnableTokenAcquisitionToCallDownstreamApi()` needs explicit initial scopes** — called
+   with no arguments, it doesn't pull scopes from a later `AddDownstreamApi(...)` call, so
+   the sign-in's authorization request never actually requests `Messages.ReadWrite`. Later,
+   calling the API fails with `IDW10502 MsalUiRequiredException` because Blazor Server can't
+   redirect mid-circuit for interactive re-consent. Fix: pass the scopes explicitly —
+   `.EnableTokenAcquisitionToCallDownstreamApi(messagesApiScopes)`.
+5. **Azure CLI needs explicit pre-authorization to request tokens for a custom API scope** —
+   `az account get-access-token --resource api://...` fails with `AADSTS650057` even after
+   granting admin consent, because the CLI's own app registration doesn't declare arbitrary
+   custom resources. Fix: on the API's app registration → Expose an API → Authorized client
+   applications → add Azure CLI's well-known client id `04b07795-8ddb-461a-bbee-02f9e1bf7b46`
+   with the relevant scope checked.
+6. **Blazor Web App template defaults to *per-page* interactivity, not global** — pages
+   need an explicit `@rendermode InteractiveServer` to become interactive; layout components
+   (`MainLayout`, `NavMenu`, a custom `UserMenu`) had none, so their `@onclick` handlers were
+   completely inert (clicking the avatar did nothing, no error). Fixed by adding
+   `@rendermode="InteractiveServer"` to `<Routes />` in `App.razor`, making interactivity
+   global — appropriate here since every page requires sign-in anyway. Removed the
+   now-redundant per-page directive from `Messages.razor`.
+7. **C# records + DataAnnotations + ASP.NET Core have a real footgun**: attributes written
+   as `[property: Required, StringLength(35)] string Foo` (targeting the generated property)
+   make ASP.NET Core's MVC model binder throw `InvalidOperationException` on every request,
+   because it reads validation metadata from a record's constructor *parameters*, not its
+   properties, for records. Fix: drop the `[property: ...]` target, apply attributes directly
+   to the parameter. Side effect: `System.ComponentModel.DataAnnotations.Validator
+   .TryValidateObject` reads from *properties* via `TypeDescriptor` and therefore can no
+   longer see parameter-only attributes — it will silently report zero errors. Don't use
+   `Validator.TryValidateObject` to test record validation attributes; check via reflection
+   on `ConstructorInfo.GetParameters()...GetCustomAttribute<T>()` instead (see
+   `CreatePacs008MessageRequestTests`).
+8. Key Vault secret naming convention settled: **`{resource}-{purpose}`**, e.g.
+   `sql-admin-password`, `web-client-secret` — flat, domain-readable, kebab-case. Deliberately
+   not using the `--`→`:` double-hyphen auto-mapping some libraries expect, since that would
+   force awkward names just to satisfy .NET config-section nesting; instead each consumer
+   maps explicit secret names to config keys in code (see `AzureSuiteKeyVaultSecretManager`
+   in `AzureSuite.Web/Program.cs`).
 
 ## Domain pivot: User/auth → PACS.008 messages (2026-09-02)
 
