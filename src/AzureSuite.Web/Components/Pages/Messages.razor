@@ -5,7 +5,14 @@
 
 <h1>PACS.008 Messages</h1>
 
-@if (_errorMessage is not null)
+@if (_sessionExpired)
+{
+    <p class="text-danger">
+        Your session expired and couldn't be refreshed automatically.
+        <a href="MicrosoftIdentity/Account/SignIn">Sign in again</a> to continue.
+    </p>
+}
+else if (_errorMessage is not null)
 {
     <p class="text-danger">@_errorMessage</p>
 }

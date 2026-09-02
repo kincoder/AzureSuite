@@ -1,6 +1,7 @@
 using AzureSuite.Application.Messages;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Identity.Abstractions;
+using Microsoft.Identity.Client;
 
 namespace AzureSuite.Web.Components.Pages;
 
@@ -18,6 +19,13 @@ public partial class Messages : ComponentBase
     private bool _isSubmitting;
     private string? _errorMessage;
 
+    // Set when the cached token for calling the API can no longer be silently refreshed
+    // (e.g. the server's in-memory token cache was cleared by an app restart, or the
+    // Blazor Server circuit reconnected after being disconnected long enough to lose the
+    // token-cache correlation). Blazor Server can't redirect mid-circuit for interactive
+    // re-consent, so instead of a raw exception we show a link to sign in again.
+    private bool _sessionExpired;
+
     protected override async Task OnInitializedAsync() => await LoadMessagesAsync();
 
     private async Task LoadMessagesAsync()
@@ -25,9 +33,15 @@ public partial class Messages : ComponentBase
         try
         {
             _errorMessage = null;
+            _sessionExpired = false;
             _messages = await DownstreamApi.CallApiForUserAsync<IReadOnlyList<Pacs008MessageSummaryDto>>(
                 "MessagesApi",
                 options => options.RelativePath = "messages");
+        }
+        catch (MsalUiRequiredException)
+        {
+            _sessionExpired = true;
+            _messages = [];
         }
         catch (Exception ex)
         {
@@ -52,6 +66,10 @@ public partial class Messages : ComponentBase
 
             _newMessage = new CreatePacs008MessageRequest { Currency = "EUR" };
             await LoadMessagesAsync();
+        }
+        catch (MsalUiRequiredException)
+        {
+            _sessionExpired = true;
         }
         catch (Exception ex)
         {
