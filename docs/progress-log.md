@@ -196,6 +196,33 @@ az deployment group create --resource-group rg-azuresuite-dev --template-file in
   Blazor Web will likely need its own app registration (interactive/delegated flow) or
   reuse this one, decide when we build the UI.
 
+## Architecture: proper layering (done, 2026-09-02)
+
+User flagged `MessagesController` reading `AppDbContext` directly as an architectural
+smell. Fixed with standard DDD/Clean Architecture layering:
+
+- `AzureSuite.Application/Abstractions/IPacs008MessageRepository.cs` — persistence
+  contract, defined in Application (depends only on Domain), implemented in
+  Infrastructure. Classic Dependency Inversion.
+- `AzureSuite.Application/Messages/` — `Pacs008MessageService` (business logic +
+  domain→DTO mapping), `IPacs008MessageService`, `Pacs008MessageSummaryDto` (output),
+  `CreatePacs008MessageRequest` (input). Controllers/UI never see the Domain entity
+  directly, only these DTOs.
+- `AzureSuite.Infrastructure/Persistence/Repositories/Pacs008MessageRepository.cs` —
+  the actual EF Core implementation.
+- `MessagesController` now depends only on `IPacs008MessageService`; gained a
+  `POST /api/messages` alongside the existing `GET`.
+- Testing: `AzureSuite.Application.Tests` (new project) tests `Pacs008MessageService`
+  against a hand-written `FakePacs008MessageRepository` (no mocking library needed for
+  a 3-method interface) — keep using this pattern until interfaces get complex enough
+  to justify NSubstitute/Moq. `AzureSuite.Infrastructure.Tests` gained
+  `Pacs008MessageRepositoryTests` (EF Core InMemory). 15 tests total across 3 test
+  projects, all passing.
+
+**Still open**: there's no UI to exercise the API yet ("SCADA-like" testing view was
+explicitly requested) — planned as the next step, needs its own Entra ID app
+registration/auth flow decision (see open items below).
+
 ## Domain pivot: User/auth → PACS.008 messages (2026-09-02)
 
 Original plan had the API doing its own register/login/password-hashing/JWT-issuing. On
