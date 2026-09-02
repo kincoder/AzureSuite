@@ -1,4 +1,5 @@
 using AzureSuite.Domain.Entities;
+using AzureSuite.Domain.ValueObjects;
 using AzureSuite.Infrastructure.Persistence;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -18,39 +19,39 @@ public class AppDbContextTests
         return new AppDbContext(options);
     }
 
+    private static Pacs008Message CreateMessage() => new()
+    {
+        MessageId = "MSG-0001",
+        EndToEndId = "E2E-0001",
+        Amount = 100.50m,
+        Currency = "EUR",
+        Debtor = new PartyAccount { Name = "Alice", Iban = "DE89370400440532013000", BicCode = "COBADEFFXXX" },
+        Creditor = new PartyAccount { Name = "Bob", Iban = "FR1420041010050500013M02606", BicCode = "PSSTFRPPXXX" }
+    };
+
     [Fact]
-    public void Email_HasUniqueIndex()
+    public void MessageId_HasUniqueIndex()
     {
         using var context = CreateContext();
 
-        var entityType = context.Model.FindEntityType(typeof(User))!;
-        var index = entityType.GetIndexes().Single(i => i.Properties.Single().Name == nameof(User.Email));
+        var entityType = context.Model.FindEntityType(typeof(Pacs008Message))!;
+        var index = entityType.GetIndexes().Single(i => i.Properties.Single().Name == nameof(Pacs008Message.MessageId));
 
         index.IsUnique.Should().BeTrue();
     }
 
     [Fact]
-    public void Email_HasMaxLengthOf256()
+    public async Task Messages_CanBeAddedAndRetrieved_WithOwnedDebtorAndCreditor()
     {
         using var context = CreateContext();
+        var message = CreateMessage();
 
-        var entityType = context.Model.FindEntityType(typeof(User))!;
-        var emailProperty = entityType.FindProperty(nameof(User.Email))!;
-
-        emailProperty.GetMaxLength().Should().Be(256);
-    }
-
-    [Fact]
-    public async Task Users_CanBeAddedAndRetrieved()
-    {
-        using var context = CreateContext();
-        var user = new User { Email = "test@example.com", PasswordHash = "hash" };
-
-        context.Users.Add(user);
+        context.Pacs008Messages.Add(message);
         await context.SaveChangesAsync();
 
-        var retrieved = await context.Users.FindAsync(user.Id);
+        var retrieved = await context.Pacs008Messages.FindAsync(message.Id);
         retrieved.Should().NotBeNull();
-        retrieved!.Email.Should().Be("test@example.com");
+        retrieved!.Debtor.Name.Should().Be("Alice");
+        retrieved.Creditor.Name.Should().Be("Bob");
     }
 }
