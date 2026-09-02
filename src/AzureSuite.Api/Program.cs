@@ -1,5 +1,6 @@
 using AzureSuite.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         builder.Configuration.GetConnectionString("AzureSuiteDb"),
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
+// The API is a resource server: it validates JWTs issued by Entra ID for the
+// AzureSuite-Api app registration, it never issues or stores credentials itself.
+builder.Services
+    .AddAuthentication(Constants.Bearer)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -24,6 +33,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
