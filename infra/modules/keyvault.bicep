@@ -11,6 +11,10 @@ param principalId string
 @description('SQL admin password to store as a secret')
 param sqlAdminPassword string
 
+@secure()
+@description('Application Insights connection string to store as a secret')
+param appInsightsConnectionString string
+
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
   location: location
@@ -47,6 +51,17 @@ resource sqlAdminPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' =
   name: 'sql-admin-password'
   properties: {
     value: sqlAdminPassword
+  }
+  dependsOn: [
+    secretsOfficerRole
+  ]
+}
+
+resource appInsightsConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'app-insights-connection-string'
+  properties: {
+    value: appInsightsConnectionString
   }
   dependsOn: [
     secretsOfficerRole

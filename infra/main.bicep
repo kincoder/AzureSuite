@@ -22,6 +22,12 @@ param principalId string
 @description('UPN (login name) of the Entra ID principal to set as the SQL server Entra admin')
 param aadAdminLogin string
 
+@description('Globally-scoped-enough unique name for the Log Analytics workspace')
+param logAnalyticsWorkspaceName string
+
+@description('Globally-scoped-enough unique name for the Application Insights resource')
+param appInsightsName string
+
 module sql 'modules/sql.bicep' = {
   name: 'sqlDeploy'
   params: {
@@ -34,6 +40,23 @@ module sql 'modules/sql.bicep' = {
   }
 }
 
+module logAnalytics 'modules/log-analytics.bicep' = {
+  name: 'logAnalyticsDeploy'
+  params: {
+    location: location
+    workspaceName: logAnalyticsWorkspaceName
+  }
+}
+
+module appInsights 'modules/app-insights.bicep' = {
+  name: 'appInsightsDeploy'
+  params: {
+    location: location
+    appInsightsName: appInsightsName
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+  }
+}
+
 module keyVault 'modules/keyvault.bicep' = {
   name: 'keyVaultDeploy'
   params: {
@@ -41,6 +64,7 @@ module keyVault 'modules/keyvault.bicep' = {
     keyVaultName: keyVaultName
     principalId: principalId
     sqlAdminPassword: sqlAdminPassword
+    appInsightsConnectionString: appInsights.outputs.connectionString
   }
 }
 
@@ -48,3 +72,4 @@ output sqlServerFqdn string = sql.outputs.sqlServerFqdn
 output sqlDatabaseName string = sql.outputs.sqlDatabaseName
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
+output logAnalyticsWorkspaceId string = logAnalytics.outputs.workspaceId
