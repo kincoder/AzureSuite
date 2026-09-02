@@ -7,18 +7,20 @@ namespace AzureSuite.Application.Tests.Messages;
 
 public class Pacs008MessageServiceTests
 {
-    private static CreatePacs008MessageRequest CreateRequest() => new(
-        MessageId: "MSG-0001",
-        EndToEndId: "E2E-0001",
-        Amount: 100.50m,
-        Currency: "EUR",
-        DebtorName: "Alice",
-        DebtorIban: "DE89370400440532013000",
-        DebtorBic: "COBADEFFXXX",
-        CreditorName: "Bob",
-        CreditorIban: "FR1420041010050500013M02606",
-        CreditorBic: "PSSTFRPPXXX",
-        RemittanceInformation: "Invoice 42");
+    private static CreatePacs008MessageRequest CreateRequest() => new()
+    {
+        MessageId = "MSG-0001",
+        EndToEndId = "E2E-0001",
+        Amount = 100.50m,
+        Currency = "EUR",
+        DebtorName = "Alice",
+        DebtorIban = "DE89370400440532013000",
+        DebtorBic = "COBADEFFXXX",
+        CreditorName = "Bob",
+        CreditorIban = "FR1420041010050500013M02606",
+        CreditorBic = "PSSTFRPPXXX",
+        RemittanceInformation = "Invoice 42"
+    };
 
     [Fact]
     public async Task CreateAsync_PersistsMessage_ViaRepository()
