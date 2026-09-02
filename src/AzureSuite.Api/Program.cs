@@ -46,10 +46,25 @@ builder.Services.AddOpenApi(options =>
     });
 });
 
+// The database is serverless and auto-pauses when idle (keeps it in the free tier).
+// Resuming from pause can take 30-60s+, longer than the connection string's default
+// 30s connect timeout and longer than EnableRetryOnFailure()'s default retry budget -
+// both are widened here to comfortably outlast a cold resume. Bumping ConnectTimeout
+// in code (rather than the stored connection string secret) keeps this independent of
+// how the secret was created.
+var connectionStringBuilder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(
+    builder.Configuration.GetConnectionString("AzureSuiteDb"))
+{
+    ConnectTimeout = 90
+};
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("AzureSuiteDb"),
-        sqlOptions => sqlOptions.EnableRetryOnFailure()));
+        connectionStringBuilder.ConnectionString,
+        sqlOptions => sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 6,
+            maxRetryDelay: TimeSpan.FromSeconds(15),
+            errorNumbersToAdd: null)));
 
 builder.Services.AddScoped<IPacs008MessageRepository, Pacs008MessageRepository>();
 builder.Services.AddScoped<IPacs008MessageService, Pacs008MessageService>();
