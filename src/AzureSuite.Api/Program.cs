@@ -1,7 +1,9 @@
 using AzureSuite.Application.Abstractions;
 using AzureSuite.Application.Messages;
+using AzureSuite.Infrastructure.Configuration;
 using AzureSuite.Infrastructure.Persistence;
 using AzureSuite.Infrastructure.Persistence.Repositories;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi;
@@ -9,9 +11,20 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Configuration.AddAzureSuiteKeyVault(
+    builder.Environment,
+    new Uri("https://kv-azsuite-dev-pumpkin.vault.azure.net/"),
+    new Dictionary<string, string>
+    {
+        ["app-insights-connection-string"] = "ApplicationInsights:ConnectionString"
+    });
+
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+builder.Services.AddOpenTelemetry().UseAzureMonitor(options =>
+    options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"]);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi(options =>
 {

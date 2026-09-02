@@ -1,8 +1,6 @@
+using AzureSuite.Infrastructure.Configuration;
 using AzureSuite.Web.Components;
-using Azure.Core;
-using Azure.Extensions.AspNetCore.Configuration.Secrets;
-using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
@@ -10,25 +8,21 @@ using Microsoft.Identity.Web.UI;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// In Development, skip straight to the Azure CLI credential (our az login session) -
-// DefaultAzureCredential's full chain otherwise wastes 10-20s probing Managed Identity's
-// instance metadata endpoint, which doesn't exist on a dev machine. Once deployed, the
-// full chain (including Managed Identity) is used automatically, no code change needed.
-TokenCredential keyVaultCredential = builder.Environment.IsDevelopment()
-    ? new AzureCliCredential()
-    : new DefaultAzureCredential();
-
-// Explicit secret-name -> config-key mapping, matching the {resource}-{purpose}
-// naming convention used across the Key Vault (e.g. "sql-admin-password"),
-// rather than the double-hyphen "--" auto-mapping convention some libraries expect.
-builder.Configuration.AddAzureKeyVault(
+builder.Configuration.AddAzureSuiteKeyVault(
+    builder.Environment,
     new Uri("https://kv-azsuite-dev-pumpkin.vault.azure.net/"),
-    keyVaultCredential,
-    new AzureSuiteKeyVaultSecretManager());
+    new Dictionary<string, string>
+    {
+        ["web-client-secret"] = "AzureAd:ClientSecret",
+        ["app-insights-connection-string"] = "ApplicationInsights:ConnectionString"
+    });
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddOpenTelemetry().UseAzureMonitor(options =>
+    options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"]);
 
 // The Web app is a client: it signs users in via Entra ID (OpenID Connect) and
 // acquires tokens to call the API on their behalf - it never validates tokens itself
@@ -79,20 +73,3 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
-
-/// <summary>
-/// Maps Key Vault secret names to configuration keys explicitly, following this
-/// project's {resource}-{purpose} naming convention instead of relying on the
-/// default "--" to ":" auto-mapping (which would force awkward secret names).
-/// </summary>
-public class AzureSuiteKeyVaultSecretManager : KeyVaultSecretManager
-{
-    private static readonly Dictionary<string, string> SecretToConfigKey = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["web-client-secret"] = "AzureAd:ClientSecret"
-    };
-
-    public override bool Load(SecretProperties secret) => SecretToConfigKey.ContainsKey(secret.Name);
-
-    public override string GetKey(KeyVaultSecret secret) => SecretToConfigKey[secret.Name];
-}
