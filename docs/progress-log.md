@@ -159,11 +159,7 @@ az deployment group create --resource-group rg-azuresuite-dev --template-file in
 ## Open items / next steps
 
 1. ~~EF Core + SQL~~ — done, see below (superseded once by the domain pivot, both done).
-2. **Auth, revised direction**: API is a resource server validating Entra ID-issued JWTs
-   (`AddAuthentication().AddJwtBearer(...)` against the tenant) — no app-owned user store,
-   no custom register/login/password hashing. Needs: an **App Registration** in Entra ID
-   for the API (Portal walkthrough, not yet done), then wiring `Microsoft.Identity.Web` or
-   plain JWT bearer config in `Program.cs`, then `[Authorize]` on message endpoints.
+2. ~~Auth, revised direction~~ — done, see "Entra ID auth (done)" below.
 3. Domain pivoted from generic `User` CRUD to **PACS.008 payment messages** (see below) —
    a much better fit for the Service Bus/Functions/Mongo pipeline than a CRUD user table.
 4. Mongo logging: start with local container, later Cosmos DB (Mongo API, free tier) —
@@ -174,6 +170,31 @@ az deployment group create --resource-group rg-azuresuite-dev --template-file in
    Function consumes → persists to Mongo (audit) + SQL (reference/settlement data).
 7. Application Insights / Log Analytics — trace the whole pipeline end to end.
 8. GitHub Actions pipeline (deploy infra + apps).
+
+## Entra ID auth (done)
+
+- **App Registration**: `AzureSuite-Api`, single-tenant, no redirect URI (it's a resource
+  server, not a client). Tenant `46b33134-1b34-42b4-9848-6b40016d2e22`, client ID
+  `edd37b21-2fdb-401b-992b-96723111682a`.
+- **Exposed API**: Application ID URI `api://edd37b21-2fdb-401b-992b-96723111682a`, scope
+  `Messages.ReadWrite` (admins + users can consent).
+- **Authorized client applications**: had to explicitly add Azure CLI's well-known client ID
+  `04b07795-8ddb-461a-bbee-02f9e1bf7b46` under Expose an API, otherwise `az account
+  get-access-token --resource api://...` fails with `AADSTS650057` (CLI's own registration
+  doesn't declare arbitrary custom resources) even after consenting — pre-authorization is
+  required for a public client like the CLI to request a custom API's scope at all.
+- `AzureSuite.Api`: added `Microsoft.Identity.Web`, `AzureAd` config section in
+  `appsettings.json` (Instance/TenantId/ClientId — not secrets, safe to commit),
+  `AddAuthentication(Constants.Bearer).AddMicrosoftIdentityWebApi(...)` +
+  `app.UseAuthentication()` in `Program.cs`. Added `MessagesController` with
+  `[Authorize] [RequiredScope("Messages.ReadWrite")]` as the first protected endpoint.
+- Verified end-to-end locally: no token → 401; valid token (acquired via
+  `az account get-access-token --resource api://edd37b21-2fdb-401b-992b-96723111682a`
+  after `az login --scope api://edd37b21-2fdb-401b-992b-96723111682a/.default`) → audience
+  and signature validated against the tenant, query executed, 200 returned.
+- Not yet done: `[Authorize]`/scope tests (integration-style, `WebApplicationFactory`);
+  Blazor Web will likely need its own app registration (interactive/delegated flow) or
+  reuse this one, decide when we build the UI.
 
 ## Domain pivot: User/auth → PACS.008 messages (2026-09-02)
 
