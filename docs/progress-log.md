@@ -25,6 +25,19 @@ file added) — keep entries short and factual, not a transcript.
   `#pragma warning disable 612, 618` by EF's own convention, and must never be hand-edited.
   Do not "fix" those files; only regenerate them via `dotnet ef migrations add/remove`.
 - Every code file should be clean and organized; comment only non-obvious *why*, not *what*.
+- **Blazor components with non-trivial logic use code-behind** (`Component.razor` +
+  `Component.razor.cs` as a partial class), matching the existing scoped-CSS split
+  (`Component.razor.css`). Small components (a handful of lines) can stay inline in
+  `@code { }`. Don't put `@inject` in both the `.razor` file and the code-behind for the
+  same service — pick one (prefer `[Inject]` property in code-behind) or it won't compile
+  (`CS0102: already contains a definition`).
+- **Don't duplicate DTOs/request shapes between the API and UI.** If both need the same
+  shape (e.g. a create-request), share the actual Application-layer type rather than
+  hand-rolling a shadow "ViewModel" class. Watch for the record gotcha: a `record` with
+  positional constructor parameters defaults to init-only properties, which Blazor's
+  `EditForm`/`@bind-Value` cannot assign to - if a shared request type needs two-way form
+  binding, make it a plain class with `{ get; set; }` properties, not a record (see
+  `CreatePacs008MessageRequest`).
 - **Testing convention**: for each `src/X.Y` project, there is a matching `tests/X.Y.Tests`
   project (xUnit + FluentAssertions + coverlet.collector for coverage). The test project's
   folder structure mirrors the source project's 1:1 (e.g. `Entities/User.cs` →
