@@ -1,0 +1,184 @@
+@page "/messages"
+@using AzureSuite.Application.Messages
+@using Microsoft.Identity.Abstractions
+@inject IDownstreamApi DownstreamApi
+@rendermode InteractiveServer
+
+<PageTitle>Messages</PageTitle>
+
+<h1>PACS.008 Messages</h1>
+
+@if (_errorMessage is not null)
+{
+    <p class="text-danger">@_errorMessage</p>
+}
+
+<h2>Submit a new message</h2>
+
+<EditForm Model="_newMessage" OnValidSubmit="SubmitMessageAsync">
+    <div class="row g-2">
+        <div class="col-md-3">
+            <label>Message Id</label>
+            <InputText class="form-control" @bind-Value="_newMessage.MessageId" />
+        </div>
+        <div class="col-md-3">
+            <label>End To End Id</label>
+            <InputText class="form-control" @bind-Value="_newMessage.EndToEndId" />
+        </div>
+        <div class="col-md-2">
+            <label>Amount</label>
+            <InputNumber class="form-control" @bind-Value="_newMessage.Amount" />
+        </div>
+        <div class="col-md-2">
+            <label>Currency</label>
+            <InputText class="form-control" @bind-Value="_newMessage.Currency" />
+        </div>
+        <div class="col-md-3">
+            <label>Debtor Name</label>
+            <InputText class="form-control" @bind-Value="_newMessage.DebtorName" />
+        </div>
+        <div class="col-md-3">
+            <label>Debtor IBAN</label>
+            <InputText class="form-control" @bind-Value="_newMessage.DebtorIban" />
+        </div>
+        <div class="col-md-2">
+            <label>Debtor BIC</label>
+            <InputText class="form-control" @bind-Value="_newMessage.DebtorBic" />
+        </div>
+        <div class="col-md-3">
+            <label>Creditor Name</label>
+            <InputText class="form-control" @bind-Value="_newMessage.CreditorName" />
+        </div>
+        <div class="col-md-3">
+            <label>Creditor IBAN</label>
+            <InputText class="form-control" @bind-Value="_newMessage.CreditorIban" />
+        </div>
+        <div class="col-md-2">
+            <label>Creditor BIC</label>
+            <InputText class="form-control" @bind-Value="_newMessage.CreditorBic" />
+        </div>
+        <div class="col-md-12">
+            <label>Remittance Information</label>
+            <InputText class="form-control" @bind-Value="_newMessage.RemittanceInformation" />
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3" disabled="@_isSubmitting">Submit</button>
+</EditForm>
+
+<h2 class="mt-4">Existing messages</h2>
+
+@if (_messages is null)
+{
+    <p>Loading...</p>
+}
+else if (_messages.Count == 0)
+{
+    <p>No messages yet.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Message Id</th>
+                <th>End To End Id</th>
+                <th>Amount</th>
+                <th>Currency</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var message in _messages)
+            {
+                <tr>
+                    <td>@message.MessageId</td>
+                    <td>@message.EndToEndId</td>
+                    <td>@message.Amount</td>
+                    <td>@message.Currency</td>
+                    <td>@message.Status</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IReadOnlyList<Pacs008MessageSummaryDto>? _messages;
+    private NewMessageModel _newMessage = new();
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadMessagesAsync();
+
+    private async Task LoadMessagesAsync()
+    {
+        try
+        {
+            _errorMessage = null;
+            _messages = await DownstreamApi.CallApiForUserAsync<IReadOnlyList<Pacs008MessageSummaryDto>>(
+                "MessagesApi",
+                options => options.RelativePath = "messages");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load messages: {ex.Message}";
+            _messages = [];
+        }
+    }
+
+    private async Task SubmitMessageAsync()
+    {
+        _isSubmitting = true;
+        try
+        {
+            var request = new CreatePacs008MessageRequest(
+                _newMessage.MessageId,
+                _newMessage.EndToEndId,
+                _newMessage.Amount,
+                _newMessage.Currency,
+                _newMessage.DebtorName,
+                _newMessage.DebtorIban,
+                _newMessage.DebtorBic,
+                _newMessage.CreditorName,
+                _newMessage.CreditorIban,
+                _newMessage.CreditorBic,
+                _newMessage.RemittanceInformation);
+
+            await DownstreamApi.CallApiForUserAsync<CreatePacs008MessageRequest, Pacs008MessageSummaryDto>(
+                "MessagesApi",
+                request,
+                options =>
+                {
+                    options.RelativePath = "messages";
+                    options.HttpMethod = HttpMethod.Post.Method;
+                });
+
+            _newMessage = new NewMessageModel();
+            await LoadMessagesAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to submit message: {ex.Message}";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    /// <summary>Form-bindable model - EditForm needs settable properties, unlike the immutable request record.</summary>
+    private class NewMessageModel
+    {
+        public string MessageId { get; set; } = "";
+        public string EndToEndId { get; set; } = "";
+        public decimal Amount { get; set; }
+        public string Currency { get; set; } = "EUR";
+        public string DebtorName { get; set; } = "";
+        public string DebtorIban { get; set; } = "";
+        public string DebtorBic { get; set; } = "";
+        public string CreditorName { get; set; } = "";
+        public string CreditorIban { get; set; } = "";
+        public string CreditorBic { get; set; } = "";
+        public string? RemittanceInformation { get; set; }
+    }
+}
