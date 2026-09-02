@@ -8,16 +8,7 @@
     <main>
         <div class="top-row px-4 d-flex justify-content-between">
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-
-            <AuthorizeView>
-                <Authorized>
-                    <span class="me-3">
-                        <span class="bi bi-person-circle" aria-hidden="true"></span>
-                        @context.User.Identity?.Name
-                    </span>
-                    <a href="MicrosoftIdentity/Account/SignOut">Sign out</a>
-                </Authorized>
-            </AuthorizeView>
+            <UserMenu />
         </div>
 
         <article class="content px-4">

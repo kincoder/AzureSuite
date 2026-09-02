@@ -33,10 +33,15 @@ builder.Services.AddRazorComponents()
 // The Web app is a client: it signs users in via Entra ID (OpenID Connect) and
 // acquires tokens to call the API on their behalf - it never validates tokens itself
 // (that's the API's job) and never stores user credentials.
+// Must request the API scope up front, at sign-in time - Blazor Server can't redirect
+// mid-circuit for interactive consent later, so if this isn't requested here, calling
+// the API afterwards fails with MsalUiRequiredException instead of a clean challenge.
+var messagesApiScopes = builder.Configuration.GetSection("MessagesApi:Scopes").Get<string[]>() ?? [];
+
 builder.Services
     .AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"))
-    .EnableTokenAcquisitionToCallDownstreamApi()
+    .EnableTokenAcquisitionToCallDownstreamApi(messagesApiScopes)
     .AddDownstreamApi("MessagesApi", builder.Configuration.GetSection("MessagesApi"))
     .AddInMemoryTokenCaches();
 

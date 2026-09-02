@@ -1,0 +1,50 @@
+<AuthorizeView>
+    <Authorized>
+        <div class="user-menu">
+            <button class="avatar-button" @onclick="ToggleMenu" title="@context.User.Identity?.Name">
+                @GetInitials(context.User.Identity?.Name)
+            </button>
+
+            @if (_isOpen)
+            {
+                <div class="menu-backdrop" @onclick="CloseMenu"></div>
+                <div class="dropdown-panel">
+                    <div class="dropdown-header">
+                        <div class="dropdown-name">@context.User.Identity?.Name</div>
+                        <div class="dropdown-email">@GetEmail(context.User)</div>
+                    </div>
+                    <a class="dropdown-item" href="MicrosoftIdentity/Account/SignOut">Sign out</a>
+                </div>
+            }
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool _isOpen;
+
+    private void ToggleMenu() => _isOpen = !_isOpen;
+
+    private void CloseMenu() => _isOpen = false;
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "?";
+        }
+
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            0 => "?",
+            1 => parts[0][..1].ToUpperInvariant(),
+            _ => $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant()
+        };
+    }
+
+    private static string GetEmail(System.Security.Claims.ClaimsPrincipal user) =>
+        user.FindFirst("preferred_username")?.Value
+        ?? user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+        ?? "";
+}

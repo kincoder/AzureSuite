@@ -1,4 +1,5 @@
 @page "/messages"
+@using System.ComponentModel.DataAnnotations
 @using AzureSuite.Application.Messages
 @using Microsoft.Identity.Abstractions
 @inject IDownstreamApi DownstreamApi
@@ -16,6 +17,8 @@
 <h2>Submit a new message</h2>
 
 <EditForm Model="_newMessage" OnValidSubmit="SubmitMessageAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
     <div class="row g-2">
         <div class="col-md-3">
             <label>Message Id</label>
@@ -166,19 +169,43 @@ else
         }
     }
 
-    /// <summary>Form-bindable model - EditForm needs settable properties, unlike the immutable request record.</summary>
+    /// <summary>
+    /// Form-bindable model - EditForm needs settable properties, unlike the immutable
+    /// request record. Length limits mirror CreatePacs008MessageRequest/ISO 20022, so
+    /// invalid input is caught client-side instead of round-tripping to the API.
+    /// </summary>
     private class NewMessageModel
     {
+        [Required, StringLength(35)]
         public string MessageId { get; set; } = "";
+
+        [Required, StringLength(35)]
         public string EndToEndId { get; set; } = "";
+
+        [Range(0.01, double.MaxValue)]
         public decimal Amount { get; set; }
+
+        [Required, StringLength(3, MinimumLength = 3)]
         public string Currency { get; set; } = "EUR";
+
+        [Required, StringLength(140)]
         public string DebtorName { get; set; } = "";
+
+        [Required, StringLength(34)]
         public string DebtorIban { get; set; } = "";
+
+        [Required, StringLength(11)]
         public string DebtorBic { get; set; } = "";
+
+        [Required, StringLength(140)]
         public string CreditorName { get; set; } = "";
+
+        [Required, StringLength(34)]
         public string CreditorIban { get; set; } = "";
+
+        [Required, StringLength(11)]
         public string CreditorBic { get; set; } = "";
+
         public string? RemittanceInformation { get; set; }
     }
 }
