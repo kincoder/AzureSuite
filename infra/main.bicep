@@ -26,5 +26,14 @@ module catalogSql 'modules/catalog/sql.bicep' = {
   }
 }
 
+module catalogStaticWebApp 'modules/catalog/staticwebapp.bicep' = {
+  name: 'catalogStaticWebApp'
+  params: {
+    location: location
+    staticWebAppName: 'stapp-messaginghub-catalog-dev'
+  }
+}
+
 output catalogSqlServerFqdn string = catalogSql.outputs.sqlServerFqdn
 output catalogKeyVaultName string = catalogKeyVault.outputs.keyVaultName
+output catalogStaticWebAppHostname string = catalogStaticWebApp.outputs.defaultHostname

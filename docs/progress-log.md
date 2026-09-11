@@ -520,6 +520,40 @@ Originally built against a `User` entity; superseded by the domain pivot above
   free-tier resource rather than a local SQL container, to stay close to what "testing
   against real Azure" looks like.
 
+## Catalog.Web — Static Web App infra and deploy (2026-09-11)
+
+Added `infra/modules/catalog/staticwebapp.bicep` (Free-tier `Microsoft.Web/staticSites`)
+and wired it into `infra/main.bicep` as module `catalogStaticWebApp`, output
+`catalogStaticWebAppHostname`. Deployed alongside the existing `catalogKeyVault`/`catalogSql`
+modules in `rg-messaginghub-dev` — `what-if` showed exactly the one new resource expected
+(existing Key Vault/SQL resources unchanged), then `az deployment group create` succeeded
+(~1m31s). Resulting resource: `stapp-messaginghub-catalog-dev`, hostname
+`agreeable-plant-07d72b803.3.azurestaticapps.net`.
+
+Built Catalog.Web's static output with `dotnet publish frontends/Catalog.Web -c Release -o
+frontends/Catalog.Web/publish`. Neither `swa` nor a static-content `az staticwebapp deploy`
+command was available, so installed the Static Web Apps CLI as a new tooling dependency
+(`npm install -g @azure/static-web-apps-cli`, v2.0.10) — same pattern as prior `az`/`gh`/
+`bicep` CLI installs on this machine. Deployment token was retrieved with
+`az staticwebapp secrets list --name stapp-messaginghub-catalog-dev --resource-group
+rg-messaginghub-dev --query properties.apiKey -o tsv` and deployed with `swa deploy
+frontends/Catalog.Web/publish/wwwroot --env production` (token passed via the
+`SWA_CLI_DEPLOYMENT_TOKEN` env var, never echoed to a file). `swa deploy` also
+self-downloaded its `StaticSitesClient.exe` on first run.
+
+**Verified:** `https://agreeable-plant-07d72b803.3.azurestaticapps.net/` returns HTTP 200
+and serves Catalog.Web's real markup (`<catalog-app>Loading...</catalog-app>` +
+`_framework/blazor.webassembly.js`), i.e. the Blazor WASM app is correctly hosted and loads.
+
+**Not verified — blocked, out of scope for this task:** full end-to-end list/register
+functionality against live Azure SQL data. Catalog.Web's only API base URL config
+(`wwwroot/appsettings.Development.json`, `CatalogApiBaseUrl: https://localhost:7184`) points
+at local dev; there is no `appsettings.json`/`appsettings.Production.json` pointing at a
+public Catalog.Api URL because **Catalog.Api itself has not been deployed as a public Azure
+App Service** in this project yet — only its SQL database is in Azure, the API still runs via
+`dotnet run` locally. Making the deployed Static Web App fully functional requires deploying
+Catalog.Api publicly first, which is a separate, out-of-scope task.
+
 ## Session recovery checklist
 
 If starting fresh: `git log --oneline` to see what's actually committed, `az account show`
