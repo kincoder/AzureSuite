@@ -27,7 +27,10 @@ namespace AzureSuite.Catalog.Api
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("https://localhost:7204", "http://localhost:5146")
+                    policy.WithOrigins(
+                            "https://localhost:7204",
+                            "http://localhost:5146",
+                            "https://agreeable-plant-07d72b803.3.azurestaticapps.net")
                         .AllowAnyHeader()
                         .AllowAnyMethod();
                 });

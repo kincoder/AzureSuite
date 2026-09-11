@@ -2,7 +2,11 @@
 
 <h3>Registered Message Types</h3>
 
-@if (MessageTypes is null)
+@if (ErrorMessage is not null)
+{
+    <p class="error">@ErrorMessage</p>
+}
+else if (MessageTypes is null)
 {
     <p>Loading...</p>
 }

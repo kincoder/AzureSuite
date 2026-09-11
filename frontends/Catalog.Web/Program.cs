@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 namespace AzureSuite.Catalog.Web
 {
+    /// <summary>Entry point that bootstraps the Catalog.Web Blazor WebAssembly host.</summary>
     public class Program
     {
         public static async Task Main(string[] args)

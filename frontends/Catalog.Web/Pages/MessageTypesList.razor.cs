@@ -12,9 +12,18 @@ namespace AzureSuite.Catalog.Web.Pages
 
         private IReadOnlyList<MessageTypeDto>? MessageTypes { get; set; }
 
+        private string? ErrorMessage { get; set; }
+
         protected override async Task OnInitializedAsync()
         {
-            MessageTypes = await ApiClient.GetMessageTypesAsync(CancellationToken.None);
+            try
+            {
+                MessageTypes = await ApiClient.GetMessageTypesAsync(CancellationToken.None);
+            }
+            catch (HttpRequestException)
+            {
+                ErrorMessage = "Failed to load message types. Please try again later.";
+            }
         }
     }
 }

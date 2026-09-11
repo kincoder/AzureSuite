@@ -18,6 +18,11 @@
     <button type="submit">Register</button>
 </EditForm>
 
+@if (ErrorMessage is not null)
+{
+    <p class="error">@ErrorMessage</p>
+}
+
 @if (SubmittedMessage is not null)
 {
     <p>@SubmittedMessage</p>

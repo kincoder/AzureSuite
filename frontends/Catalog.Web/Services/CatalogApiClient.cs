@@ -14,12 +14,14 @@ namespace AzureSuite.Catalog.Web.Services
             _httpClient = httpClient;
         }
 
+        /// <summary>Retrieves all message types registered in the catalog.</summary>
         public async Task<IReadOnlyList<MessageTypeDto>> GetMessageTypesAsync(CancellationToken cancellationToken)
         {
             var result = await _httpClient.GetFromJsonAsync<List<MessageTypeDto>>("/message-types", cancellationToken);
             return result ?? new List<MessageTypeDto>();
         }
 
+        /// <summary>Registers a new message type in the catalog.</summary>
         public async Task<MessageTypeDto> RegisterMessageTypeAsync(RegisterMessageTypeRequest request, CancellationToken cancellationToken)
         {
             var response = await _httpClient.PostAsJsonAsync("/message-types", request, cancellationToken);

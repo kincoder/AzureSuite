@@ -14,11 +14,21 @@ namespace AzureSuite.Catalog.Web.Pages
 
         private string? SubmittedMessage { get; set; }
 
+        private string? ErrorMessage { get; set; }
+
         private async Task SubmitAsync()
         {
-            var dto = await ApiClient.RegisterMessageTypeAsync(Request, CancellationToken.None);
-            SubmittedMessage = $"Registered {dto.Name} v{dto.Version}.";
-            Request = new RegisterMessageTypeRequest();
+            try
+            {
+                var dto = await ApiClient.RegisterMessageTypeAsync(Request, CancellationToken.None);
+                SubmittedMessage = $"Registered {dto.Name} v{dto.Version}.";
+                ErrorMessage = null;
+                Request = new RegisterMessageTypeRequest();
+            }
+            catch (HttpRequestException)
+            {
+                ErrorMessage = "Failed to register the message type. It may already exist, or the server is unavailable.";
+            }
         }
     }
 }

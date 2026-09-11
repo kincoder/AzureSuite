@@ -61,5 +61,31 @@ namespace Catalog.Web.Tests.Services
 
             result.Should().BeEquivalentTo(expected);
         }
+
+        [Fact]
+        public async Task GetMessageTypesAsync_ThrowsHttpRequestException_WhenApiReturnsServerError()
+        {
+            var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError));
+            var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://localhost") };
+            var client = new CatalogApiClient(httpClient);
+
+            var act = () => client.GetMessageTypesAsync(CancellationToken.None);
+
+            await act.Should().ThrowAsync<HttpRequestException>();
+        }
+
+        [Fact]
+        public async Task RegisterMessageTypeAsync_ThrowsHttpRequestException_WhenApiReturnsConflict()
+        {
+            var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.Conflict));
+            var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://localhost") };
+            var client = new CatalogApiClient(httpClient);
+
+            var act = () => client.RegisterMessageTypeAsync(
+                new RegisterMessageTypeRequest { Name = "camt.054", Version = "1.0", SchemaDefinition = "{}" },
+                CancellationToken.None);
+
+            await act.Should().ThrowAsync<HttpRequestException>();
+        }
     }
 }
