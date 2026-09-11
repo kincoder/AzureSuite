@@ -19,6 +19,9 @@ namespace AzureSuite.Catalog.Infrastructure.Persistence
             {
                 entity.HasKey(m => m.Id);
 
+                // Id is assigned in the constructor (Guid.NewGuid()), not by the database.
+                entity.Property(m => m.Id).ValueGeneratedNever();
+
                 // Value objects are stored as their plain string Value via a converter; the
                 // Name/Version columns stay simple strings in the database.
                 entity.Property(m => m.Name)
@@ -33,6 +36,7 @@ namespace AzureSuite.Catalog.Infrastructure.Persistence
 
                 entity.HasIndex(m => new { m.Name, m.Version }).IsUnique();
                 entity.Property(m => m.SchemaDefinition).IsRequired();
+                entity.Property(m => m.RegisteredAtUtc).IsRequired();
             });
         }
     }

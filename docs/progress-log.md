@@ -16,6 +16,54 @@ implementation resumes. Everything below this point describes the superseded bui
 kept as reference for tooling/gotchas that likely still apply (EF Core setup,
 DefaultAzureCredential slowness locally, Key Vault secret naming, etc.).
 
+## Messaging Hub — Catalog service (2026-09-11): first service live end-to-end
+
+Catalog (services/Catalog/) built via TDD per `docs/superpowers/plans/2026-09-11-catalog-service.md`:
+Domain (MessageType entity + MessageTypeName/MessageTypeVersion value objects — real DDD,
+not just folder separation), Application (lightweight CQRS via MediatR — RegisterMessageType
+command, GetMessageType/ListMessageTypes queries), Infrastructure (EF Core, SQL Server),
+Api (minimal API endpoints, Scalar UI at /scalar/v1 in Development). Deployed to Azure SQL
+(`sql-messaginghub-catalog-dev`/`catalog` database) in `rg-messaginghub-dev` and verified
+working end-to-end against the real database (register + get + list all round-trip
+correctly). 31 tests passing across 4 test projects, 0 warnings.
+
+**Coding conventions locked in during this build (apply to every future service too):**
+block-scoped namespaces everywhere (no file-scoped `namespace X;`), no top-level statements
+(every `Program.cs` has explicit `class Program` + `static void Main`), minimal API
+endpoints (not `[ApiController]` classes), XML doc comments on every class and on any
+non-obvious property, request DTOs live in their own `Contracts/` folder rather than inline
+in `Program.cs`. See `docs/superpowers/plans/2026-09-11-catalog-service.md`'s Global
+Constraints for the authoritative list.
+
+**Two real bugs hit and fixed here (worth remembering):**
+1. **EF Core silently dropped a column with no error.** `MessageType.RegisteredAtUtc` (a
+   get-only auto-property, same shape as `Id`/`Name`/`Version`/`SchemaDefinition`) was
+   missing entirely from the generated migration/table — no warning, just absent. The other
+   four properties worked because each was explicitly touched somewhere in
+   `OnModelCreating` (`HasKey`, `Property(...).HasConversion(...)`, or `Property(...).IsRequired()`);
+   `RegisteredAtUtc` was the only one never referenced there. Fix: add
+   `entity.Property(m => m.RegisteredAtUtc).IsRequired();` explicitly. Lesson: don't rely on
+   pure convention-based discovery for get-only properties — touch every mapped property in
+   `OnModelCreating` at least once, and manually inspect generated migrations for
+   completeness before applying them (the InMemory-provider unit tests did **not** catch
+   this, since InMemory doesn't generate a relational schema).
+2. **`WebApplicationFactory` integration tests hit the real Azure SQL database** because the
+   test host reused `Catalog.Api`'s configuration (including user secrets) unchanged, and
+   `AddDbContext` had already been called with `UseSqlServer` once a real connection string
+   was set locally. This silently wrote test data into the live dev database and made test
+   runs non-repeatable (second run failed with "already registered"). Fixed with a custom
+   `CatalogApiFactory : WebApplicationFactory<Program>` that removes **both**
+   `DbContextOptions<CatalogDbContext>` **and** `IDbContextOptionsConfiguration<CatalogDbContext>`
+   (the latter is additive/enumerable — removing only the former left both SqlServer's and
+   InMemory's provider configuration applied to the same options, causing "only a single
+   database provider can be registered") before re-registering `UseInMemoryDatabase`. Also
+   hit: computing the InMemory database name via `Guid.NewGuid()` **inside** the
+   `AddDbContext` configure lambda gives every request its own empty database, since that
+   lambda runs per-DbContext-construction (i.e. per request) — the Guid must be computed
+   once outside the lambda and captured. Lesson: any integration test project using
+   `WebApplicationFactory` against a project with a real external connection string needs an
+   explicit override like this from day one, not discovered after the fact.
+
 ## Messaging Hub — infra naming (2026-09-11)
 
 New resource group for the rebuild: `rg-messaginghub-dev` (West Europe, matching the

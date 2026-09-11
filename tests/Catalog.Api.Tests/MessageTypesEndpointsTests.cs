@@ -1,18 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
-using AzureSuite.Catalog.Api;
 using AzureSuite.Catalog.Application.MessageTypes;
 using FluentAssertions;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace Catalog.Api.Tests
 {
-    public class MessageTypesEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+    public class MessageTypesEndpointsTests : IClassFixture<CatalogApiFactory>
     {
         private readonly HttpClient _client;
 
-        public MessageTypesEndpointsTests(WebApplicationFactory<Program> factory)
+        public MessageTypesEndpointsTests(CatalogApiFactory factory)
         {
             _client = factory.CreateClient();
         }
