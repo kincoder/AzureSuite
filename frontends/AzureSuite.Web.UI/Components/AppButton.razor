@@ -1,0 +1,27 @@
+@if (Href is not null)
+{
+    <a href="@Href" class="app-button @VariantClass">@ChildContent</a>
+}
+else
+{
+    <button type="@Type" class="app-button @VariantClass" disabled="@Disabled">@ChildContent</button>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? Href { get; set; }
+
+    [Parameter]
+    public string Type { get; set; } = "button";
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public AppButtonVariant Variant { get; set; } = AppButtonVariant.Primary;
+
+    private string VariantClass => Variant == AppButtonVariant.Primary ? "app-button-primary" : "app-button-secondary";
+}
