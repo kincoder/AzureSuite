@@ -19,6 +19,18 @@ xUnit, FluentAssertions, Bicep.
 
 **Spec:** `docs/superpowers/specs/2026-09-11-financial-messaging-hub-design.md`
 
+> **Note (mid-execution update):** Tasks 2-5 below were implemented with two
+> deviations from the code samples as originally written, agreed with the user
+> during execution: (1) `MessageType.Name`/`Version` are `MessageTypeName`/
+> `MessageTypeVersion` value objects (own validation, value equality), not raw
+> strings — `IMessageTypeRepository` and all handlers take/return the value
+> objects, with primitives only at the `RegisterMessageTypeCommand`/
+> `GetMessageTypeQuery`/`MessageTypeDto` boundary. (2) every file uses
+> block-scoped namespaces and XML doc comments per Global Constraints below.
+> The actual committed code is the source of truth; Task 6 below has been
+> updated to match it, Tasks 2-5's embedded snippets have not been
+> retroactively edited.
+
 ## Global Constraints
 
 - Hand-written code must be warning-free, nullable-enabled, no `#pragma
@@ -31,6 +43,19 @@ xUnit, FluentAssertions, Bicep.
 - Repo layout root: `services/Catalog/`, `tests/`, `infra/modules/catalog/`.
 - New Azure resource group for this rebuild (not `rg-azuresuite-dev`) —
   naming decided in Task 7.
+- **Namespaces are block-scoped** (`namespace X { }`), never file-scoped
+  (`namespace X;`) — applies to every `.cs` file, including tests.
+- **No top-level statements.** Every `Program.cs` has an explicit
+  `public class Program` with `static void Main(string[] args)`.
+- **API style: minimal API endpoints**, not controllers — routes registered
+  via `app.MapGet`/`app.MapPost` etc. inside `Main`, not `[ApiController]`
+  classes.
+- **XML doc comments** (`/// <summary>`) on every class/record and on any
+  property whose purpose isn't obvious from its name alone (e.g. what a
+  schema/definition field actually holds) — supports future OpenAPI/help
+  generation. Trivial properties (an `Id`, a DTO field that just mirrors an
+  entity property) don't need one if the class-level summary already makes
+  the shape clear.
 
 ---
 
@@ -852,61 +877,63 @@ dotnet sln AzureSuite.slnx add tests/Catalog.Api.Tests
 ```csharp
 using System.Net;
 using System.Net.Http.Json;
+using AzureSuite.Catalog.Api;
 using AzureSuite.Catalog.Application.MessageTypes;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
-namespace Catalog.Api.Tests;
-
-public class MessageTypesEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+namespace Catalog.Api.Tests
 {
-    private readonly HttpClient _client;
-
-    public MessageTypesEndpointsTests(WebApplicationFactory<Program> factory)
+    public class MessageTypesEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
     {
-        _client = factory.CreateClient();
-    }
+        private readonly HttpClient _client;
 
-    [Fact]
-    public async Task RegisterThenGet_ReturnsTheRegisteredMessageType()
-    {
-        var registerResponse = await _client.PostAsJsonAsync("/message-types", new
+        public MessageTypesEndpointsTests(WebApplicationFactory<Program> factory)
         {
-            name = "pacs.008",
-            version = "1.0",
-            schemaDefinition = "{}"
-        });
+            _client = factory.CreateClient();
+        }
 
-        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        var registered = await registerResponse.Content.ReadFromJsonAsync<MessageTypeDto>();
+        [Fact]
+        public async Task RegisterThenGet_ReturnsTheRegisteredMessageType()
+        {
+            var registerResponse = await _client.PostAsJsonAsync("/message-types", new
+            {
+                name = "pacs.008",
+                version = "1.0",
+                schemaDefinition = "{}"
+            });
 
-        var getResponse = await _client.GetAsync("/message-types/pacs.008/1.0");
-        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var fetched = await getResponse.Content.ReadFromJsonAsync<MessageTypeDto>();
+            registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            var registered = await registerResponse.Content.ReadFromJsonAsync<MessageTypeDto>();
 
-        fetched!.Id.Should().Be(registered!.Id);
-    }
+            var getResponse = await _client.GetAsync("/message-types/pacs.008/1.0");
+            getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var fetched = await getResponse.Content.ReadFromJsonAsync<MessageTypeDto>();
 
-    [Fact]
-    public async Task Get_WhenMessageTypeDoesNotExist_ReturnsNotFound()
-    {
-        var response = await _client.GetAsync("/message-types/does-not-exist/1.0");
+            fetched!.Id.Should().Be(registered!.Id);
+        }
 
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
+        [Fact]
+        public async Task Get_WhenMessageTypeDoesNotExist_ReturnsNotFound()
+        {
+            var response = await _client.GetAsync("/message-types/does-not-exist/1.0");
 
-    [Fact]
-    public async Task List_ReturnsAllRegisteredMessageTypes()
-    {
-        await _client.PostAsJsonAsync("/message-types", new { name = "pacs.008", version = "2.0", schemaDefinition = "{}" });
-        await _client.PostAsJsonAsync("/message-types", new { name = "camt.054", version = "1.0", schemaDefinition = "{}" });
+            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
 
-        var response = await _client.GetAsync("/message-types");
+        [Fact]
+        public async Task List_ReturnsAllRegisteredMessageTypes()
+        {
+            await _client.PostAsJsonAsync("/message-types", new { name = "pacs.008", version = "2.0", schemaDefinition = "{}" });
+            await _client.PostAsJsonAsync("/message-types", new { name = "camt.054", version = "1.0", schemaDefinition = "{}" });
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var all = await response.Content.ReadFromJsonAsync<List<MessageTypeDto>>();
-        all!.Select(m => m.Name).Should().Contain(new[] { "pacs.008", "camt.054" });
+            var response = await _client.GetAsync("/message-types");
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var all = await response.Content.ReadFromJsonAsync<List<MessageTypeDto>>();
+            all!.Select(m => m.Name).Should().Contain(new[] { "pacs.008", "camt.054" });
+        }
     }
 }
 ```
@@ -914,7 +941,10 @@ public class MessageTypesEndpointsTests : IClassFixture<WebApplicationFactory<Pr
 - [ ] **Step 3: Run tests to verify they fail**
 
 Run: `dotnet test tests/Catalog.Api.Tests`
-Expected: FAIL — `Program` isn't accessible / endpoints don't exist / DI not configured.
+Expected: FAIL — endpoints don't exist / DI not configured (`Program` is
+already a public class from Task 1, so `WebApplicationFactory<Program>`
+resolves fine — no partial-class trick needed since this project never used
+top-level statements).
 
 - [ ] **Step 4: Wire DI and endpoints in `Program.cs`**
 
@@ -928,60 +958,64 @@ using AzureSuite.Catalog.Infrastructure.Persistence.Repositories;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddOpenApi();
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterMessageTypeCommand).Assembly));
-builder.Services.AddScoped<IMessageTypeRepository, MessageTypeRepository>();
-
-var connectionString = builder.Configuration.GetConnectionString("CatalogDb");
-if (string.IsNullOrEmpty(connectionString))
+namespace AzureSuite.Catalog.Api
 {
-    builder.Services.AddDbContext<CatalogDbContext>(options => options.UseInMemoryDatabase("CatalogDb"));
+    /// <summary>Entry point and endpoint registration for the Catalog service's HTTP API.</summary>
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.AddOpenApi();
+            builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterMessageTypeCommand).Assembly));
+            builder.Services.AddScoped<IMessageTypeRepository, MessageTypeRepository>();
+
+            var connectionString = builder.Configuration.GetConnectionString("CatalogDb");
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                builder.Services.AddDbContext<CatalogDbContext>(options => options.UseInMemoryDatabase("CatalogDb"));
+            }
+            else
+            {
+                builder.Services.AddDbContext<CatalogDbContext>(options => options.UseSqlServer(connectionString));
+            }
+
+            var app = builder.Build();
+
+            if (app.Environment.IsDevelopment())
+            {
+                app.MapOpenApi();
+            }
+
+            app.UseHttpsRedirection();
+
+            app.MapPost("/message-types", async (RegisterMessageTypeRequest request, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new RegisterMessageTypeCommand(request.Name, request.Version, request.SchemaDefinition));
+                return Results.Created($"/message-types/{dto.Name}/{dto.Version}", dto);
+            });
+
+            app.MapGet("/message-types/{name}/{version}", async (string name, string version, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new GetMessageTypeQuery(name, version));
+                return dto is null ? Results.NotFound() : Results.Ok(dto);
+            });
+
+            app.MapGet("/message-types", async (IMediator mediator) =>
+            {
+                var dtos = await mediator.Send(new ListMessageTypesQuery());
+                return Results.Ok(dtos);
+            });
+
+            app.Run();
+        }
+    }
+
+    /// <summary>Request body for registering a new message type via <c>POST /message-types</c>.</summary>
+    public record RegisterMessageTypeRequest(string Name, string Version, string SchemaDefinition);
 }
-else
-{
-    builder.Services.AddDbContext<CatalogDbContext>(options => options.UseSqlServer(connectionString));
-}
-
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
-app.UseHttpsRedirection();
-
-app.MapPost("/message-types", async (RegisterMessageTypeRequest request, IMediator mediator) =>
-{
-    var dto = await mediator.Send(new RegisterMessageTypeCommand(request.Name, request.Version, request.SchemaDefinition));
-    return Results.Created($"/message-types/{dto.Name}/{dto.Version}", dto);
-});
-
-app.MapGet("/message-types/{name}/{version}", async (string name, string version, IMediator mediator) =>
-{
-    var dto = await mediator.Send(new GetMessageTypeQuery(name, version));
-    return dto is null ? Results.NotFound() : Results.Ok(dto);
-});
-
-app.MapGet("/message-types", async (IMediator mediator) =>
-{
-    var dtos = await mediator.Send(new ListMessageTypesQuery());
-    return Results.Ok(dtos);
-});
-
-app.Run();
-
-public record RegisterMessageTypeRequest(string Name, string Version, string SchemaDefinition);
-
-public partial class Program { }
 ```
-
-Note: the `public partial class Program { }` at the bottom is required so
-`WebApplicationFactory<Program>` in the test project can find the entry
-point — top-level statement programs don't expose `Program` publicly by
-default.
 
 - [ ] **Step 5: Run tests to verify they pass**
 
