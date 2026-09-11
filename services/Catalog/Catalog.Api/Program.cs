@@ -27,7 +27,7 @@ namespace AzureSuite.Catalog.Api
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("https://localhost:7100", "http://localhost:5100")
+                    policy.WithOrigins("https://localhost:7204", "http://localhost:5146")
                         .AllowAnyHeader()
                         .AllowAnyMethod();
                 });

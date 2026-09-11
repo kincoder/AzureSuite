@@ -1,0 +1,32 @@
+@page "/"
+
+<h3>Registered Message Types</h3>
+
+@if (MessageTypes is null)
+{
+    <p>Loading...</p>
+}
+else if (MessageTypes.Count == 0)
+{
+    <p>No message types registered yet.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Version</th><th>Registered</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var messageType in MessageTypes)
+            {
+                <tr>
+                    <td>@messageType.Name</td>
+                    <td>@messageType.Version</td>
+                    <td>@messageType.RegisteredAtUtc</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<a href="/register">Register a new message type</a>
