@@ -16,5 +16,6 @@
     <Project Path="tests/Catalog.Domain.Tests/Catalog.Domain.Tests.csproj" />
     <Project Path="tests/Catalog.Infrastructure.Tests/Catalog.Infrastructure.Tests.csproj" />
     <Project Path="tests/Catalog.Web.Tests/Catalog.Web.Tests.csproj" />
+    <Project Path="tests/AzureSuite.Web.UI.Tests/AzureSuite.Web.UI.Tests.csproj" />
   </Folder>
 </Solution>
