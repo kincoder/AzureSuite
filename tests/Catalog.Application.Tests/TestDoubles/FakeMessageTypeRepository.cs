@@ -1,5 +1,6 @@
 using AzureSuite.Catalog.Application.Abstractions;
 using AzureSuite.Catalog.Domain.Entities;
+using AzureSuite.Catalog.Domain.ValueObjects;
 
 namespace Catalog.Application.Tests.TestDoubles;
 
@@ -13,7 +14,7 @@ public class FakeMessageTypeRepository : IMessageTypeRepository
         return Task.CompletedTask;
     }
 
-    public Task<MessageType?> GetByNameAndVersionAsync(string name, string version, CancellationToken cancellationToken)
+    public Task<MessageType?> GetByNameAndVersionAsync(MessageTypeName name, MessageTypeVersion version, CancellationToken cancellationToken)
     {
         var found = _messageTypes.FirstOrDefault(m => m.Name == name && m.Version == version);
         return Task.FromResult(found);

@@ -1,4 +1,5 @@
 using AzureSuite.Catalog.Domain.Entities;
+using AzureSuite.Catalog.Domain.ValueObjects;
 using AzureSuite.Catalog.Infrastructure.Persistence;
 using AzureSuite.Catalog.Infrastructure.Persistence.Repositories;
 using FluentAssertions;
@@ -23,10 +24,12 @@ public class MessageTypeRepositoryTests
     {
         await using var context = CreateContext();
         var repository = new MessageTypeRepository(context);
-        var messageType = new MessageType("pacs.008", "1.0", "{}");
+        var name = new MessageTypeName("pacs.008");
+        var version = new MessageTypeVersion("1.0");
+        var messageType = new MessageType(name, version, "{}");
 
         await repository.AddAsync(messageType, CancellationToken.None);
-        var found = await repository.GetByNameAndVersionAsync("pacs.008", "1.0", CancellationToken.None);
+        var found = await repository.GetByNameAndVersionAsync(name, version, CancellationToken.None);
 
         found.Should().NotBeNull();
         found!.Id.Should().Be(messageType.Id);
@@ -38,7 +41,7 @@ public class MessageTypeRepositoryTests
         await using var context = CreateContext();
         var repository = new MessageTypeRepository(context);
 
-        var found = await repository.GetByNameAndVersionAsync("camt.054", "1.0", CancellationToken.None);
+        var found = await repository.GetByNameAndVersionAsync(new MessageTypeName("camt.054"), new MessageTypeVersion("1.0"), CancellationToken.None);
 
         found.Should().BeNull();
     }
@@ -48,12 +51,12 @@ public class MessageTypeRepositoryTests
     {
         await using var context = CreateContext();
         var repository = new MessageTypeRepository(context);
-        await repository.AddAsync(new MessageType("pacs.008", "1.0", "{}"), CancellationToken.None);
-        await repository.AddAsync(new MessageType("camt.054", "1.0", "{}"), CancellationToken.None);
+        await repository.AddAsync(new MessageType(new MessageTypeName("pacs.008"), new MessageTypeVersion("1.0"), "{}"), CancellationToken.None);
+        await repository.AddAsync(new MessageType(new MessageTypeName("camt.054"), new MessageTypeVersion("1.0"), "{}"), CancellationToken.None);
 
         var all = await repository.ListAsync(CancellationToken.None);
 
         all.Should().HaveCount(2);
-        all.Select(m => m.Name).Should().BeEquivalentTo("pacs.008", "camt.054");
+        all.Select(m => m.Name.Value).Should().BeEquivalentTo("pacs.008", "camt.054");
     }
 }

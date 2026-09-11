@@ -1,4 +1,5 @@
 using AzureSuite.Catalog.Domain.Entities;
+using AzureSuite.Catalog.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace AzureSuite.Catalog.Infrastructure.Persistence;
@@ -16,9 +17,18 @@ public class CatalogDbContext : DbContext
         modelBuilder.Entity<MessageType>(entity =>
         {
             entity.HasKey(m => m.Id);
+
+            entity.Property(m => m.Name)
+                .HasConversion(name => name.Value, value => new MessageTypeName(value))
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(m => m.Version)
+                .HasConversion(version => version.Value, value => new MessageTypeVersion(value))
+                .IsRequired()
+                .HasMaxLength(20);
+
             entity.HasIndex(m => new { m.Name, m.Version }).IsUnique();
-            entity.Property(m => m.Name).IsRequired().HasMaxLength(100);
-            entity.Property(m => m.Version).IsRequired().HasMaxLength(20);
             entity.Property(m => m.SchemaDefinition).IsRequired();
         });
     }
