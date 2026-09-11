@@ -33,9 +33,44 @@ A new class library, `services/Shared/AzureSuite.Observability` (net10.0, plain
 `AzureSuite.Web.UI`, but lives under `services/Shared` rather than `frontends` since
 backend services are the consumers).
 
-**Packages:** `Serilog.AspNetCore` (10.0.0), `Serilog.Sinks.ApplicationInsights` (5.0.1),
-`Serilog.Sinks.EventLog` (4.0.0), `Microsoft.ApplicationInsights` (3.1.2, for
+**Packages:** `Serilog.AspNetCore` (10.0.0), `Serilog.Settings.Configuration` (10.0.1, lets
+Serilog read its `WriteTo`/`MinimumLevel`/enrichers straight out of `appsettings.json`
+instead of C# conditionals), `Serilog.Sinks.ApplicationInsights` (5.0.1),
+`Serilog.Sinks.EventLog` (4.0.0), `Microsoft.ApplicationInsights` (3.1.2, for the
 `TelemetryConfiguration`/`ITelemetryInitializer` types the App Insights sink needs).
+
+**Sink selection lives in config, not code.** Per explicit direction: which sinks are
+active is driven entirely by which `appsettings*.json` file is in effect, not by
+`IsDevelopment()`/`OperatingSystem.IsWindows()` branches in C#. `appsettings.Development.json`
+declares the Event Log sink in its `Serilog:WriteTo` array; `appsettings.json` (the base
+file used as-is in Azure, since nothing overrides it there) does not. Example
+`appsettings.Development.json` addition for `Catalog.Api`:
+
+```json
+{
+  "Serilog": {
+    "MinimumLevel": "Information",
+    "WriteTo": [
+      { "Name": "EventLog", "Args": { "source": "Catalog.Api", "manageEventSource": true } }
+    ]
+  }
+}
+```
+
+`appsettings.json` gets the same `Serilog` section but with an empty `WriteTo: []` (no
+Event Log in the base/Azure config). Deploying to Azure App Service takes whatever
+`appsettings.json` says (App Service doesn't get an `appsettings.Development.json`
+overlay) — the moment a new sink or sink option is needed, it's a JSON change, not a code
+change, and this is exactly where `Serilog.Settings.Configuration` earns its place: it's
+also where future sink tuning (levels per namespace, additional sinks, sampling) plugs in
+without touching `AzureSuite.Observability` again.
+
+**The one thing that stays in code: cloud role name.** The Application Insights sink's
+"which app is this" tag (`telemetry.Context.Cloud.RoleName`) can't be expressed as plain
+JSON — it needs a custom `ITelemetryInitializer` object — so this one piece of wiring
+still happens in C#, via a small, explicit extension method every service calls once with
+its own name. Everything else about *whether* Application Insights is active at all still
+comes from config (whether `ApplicationInsights:ConnectionString` is non-empty).
 
 **Public surface:** one extension method,
 `WebApplicationBuilder AddAzureSuiteLogging(this WebApplicationBuilder builder, string serviceName)`,
@@ -47,21 +82,21 @@ builder.AddAzureSuiteLogging("Catalog.Api");
 ```
 
 Behavior:
-1. Reads `ApplicationInsights:ConnectionString` from configuration.
-2. Builds a Serilog `LoggerConfiguration` enriched with a `Service` property set to
-   `serviceName` (useful for querying/filtering in Application Insights logs directly, in
-   addition to the cloud role name mechanism below).
-3. If the connection string is present: adds the Application Insights sink, using a
-   `TelemetryConfiguration` whose `ConnectionString` is set and which has a custom
-   `ITelemetryInitializer` (`CloudRoleNameTelemetryInitializer`) that sets
-   `telemetry.Context.Cloud.RoleName = serviceName`. This is what lets every service log
-   into the *same* Application Insights resource while staying distinguishable in the
-   Application Map, Live Metrics, and log queries (`cloud_RoleName == "Catalog.Api"`) —
-   this is the mechanism behind "each application initializes with its name."
-4. If `builder.Environment.IsDevelopment()` and `OperatingSystem.IsWindows()`: adds the
-   Event Log sink (`Serilog.Sinks.EventLog`), using `serviceName` as the event source
-   (`manageEventSource: true` so it self-registers instead of requiring elevated setup).
-5. Sets `Log.Logger` to the built configuration and calls `builder.Host.UseSerilog()`.
+1. Starts a Serilog `LoggerConfiguration` with `.ReadFrom.Configuration(builder.Configuration)`
+   — this alone wires up everything declared under the `Serilog` section (Event Log
+   inclusion/exclusion, minimum level, future sinks), with zero environment-branching code.
+2. Adds `.Enrich.WithProperty("Service", serviceName)` (useful for querying/filtering in
+   Application Insights logs directly, in addition to the cloud role name mechanism
+   below).
+3. Reads `ApplicationInsights:ConnectionString` from configuration; if present, adds the
+   Application Insights sink using a `TelemetryConfiguration` whose `ConnectionString` is
+   set and which has a custom `ITelemetryInitializer` (`CloudRoleNameTelemetryInitializer`)
+   that sets `telemetry.Context.Cloud.RoleName = serviceName`. This is what lets every
+   service log into the *same* Application Insights resource while staying
+   distinguishable in the Application Map, Live Metrics, and log queries
+   (`cloud_RoleName == "Catalog.Api"`) — the mechanism behind "each application
+   initializes with its name."
+4. Sets `Log.Logger` to the built configuration and calls `builder.Host.UseSerilog()`.
 
 No connection string configured (e.g. a fresh clone with no `appsettings.Development.json`
 override) → the app still runs, it just has no Application Insights sink; this matches
@@ -70,10 +105,9 @@ fallback when no connection string).
 
 **`Catalog.Api` changes:** add the `AzureSuite.Observability` project reference, call
 `builder.AddAzureSuiteLogging("Catalog.Api")` right after `WebApplication.CreateBuilder`,
-add an empty `"ApplicationInsights": { "ConnectionString": "" }` placeholder to
-`appsettings.json` (documents the key exists) and the real value goes into
-`appsettings.Development.json` (gitignored value — see Secrets section) for local runs
-against the shared Azure resource.
+add the `Serilog`/`ApplicationInsights` sections described above to `appsettings.json`
+(empty connection string, empty `WriteTo`) and to `appsettings.Development.json` (real
+connection string — see Secrets section — plus the Event Log sink entry).
 
 ## Frontend MFEs: browser-side Application Insights
 
