@@ -1,29 +1,29 @@
 @page "/register"
 
-<h3>Register Message Type</h3>
+<PageHeader Title="Register Message Type" Eyebrow="Catalog" />
 
 <EditForm Model="@Request" OnValidSubmit="@SubmitAsync">
-    <div>
+    <div class="form-group">
         <label>Name</label>
         <InputText @bind-Value="Request.Name" />
     </div>
-    <div>
+    <div class="form-group">
         <label>Version</label>
         <InputText @bind-Value="Request.Version" />
     </div>
-    <div>
+    <div class="form-group">
         <label>Schema Definition</label>
         <InputTextArea @bind-Value="Request.SchemaDefinition" />
     </div>
-    <button type="submit">Register</button>
+    <AppButton Type="submit">Register</AppButton>
 </EditForm>
 
 @if (ErrorMessage is not null)
 {
-    <p class="error">@ErrorMessage</p>
+    <ErrorState Message="@ErrorMessage" />
 }
 
 @if (SubmittedMessage is not null)
 {
-    <p>@SubmittedMessage</p>
+    <p class="subtitle">@SubmittedMessage</p>
 }
