@@ -1,6 +1,8 @@
 using AzureSuite.Catalog.Web.Services;
+using AzureSuite.Web.UI;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.JSInterop;
 
 namespace AzureSuite.Catalog.Web
 {
@@ -17,8 +19,14 @@ namespace AzureSuite.Catalog.Web
                 BaseAddress = new Uri(builder.Configuration["CatalogApiBaseUrl"] ?? "https://localhost:7184")
             });
             builder.Services.AddScoped<CatalogApiClient>();
+            builder.Services.AddScoped<ClientTelemetryLogger>();
 
-            await builder.Build().RunAsync();
+            var host = builder.Build();
+
+            var jsRuntime = host.Services.GetRequiredService<IJSRuntime>();
+            await jsRuntime.InvokeVoidAsync("initAppInsights", builder.Configuration["ApplicationInsightsConnectionString"], "Catalog.Web");
+
+            await host.RunAsync();
         }
     }
 }

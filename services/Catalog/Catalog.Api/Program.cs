@@ -1,6 +1,7 @@
 using AzureSuite.Catalog.Api.Contracts;
 using AzureSuite.Catalog.Api.Persistence;
 using AzureSuite.Catalog.Application.Abstractions;
+using AzureSuite.Observability;
 using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.ListMessageTypes;
@@ -18,6 +19,7 @@ namespace AzureSuite.Catalog.Api
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            builder.AddAzureSuiteLogging("Catalog.Api");
 
             builder.Services.AddOpenApi();
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterMessageTypeCommand).Assembly));

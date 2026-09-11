@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\frontends\Catalog.Web\Catalog.Web.csproj" />
+    <ProjectReference Include="..\..\frontends\AzureSuite.Web.UI\AzureSuite.Web.UI.csproj" />
   </ItemGroup>
 
 </Project>

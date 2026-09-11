@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Catalog.Application\Catalog.Application.csproj" />
     <ProjectReference Include="..\Catalog.Infrastructure\Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Shared\AzureSuite.Observability\AzureSuite.Observability.csproj" />
   </ItemGroup>
 
 </Project>

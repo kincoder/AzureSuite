@@ -1,5 +1,6 @@
 using AzureSuite.Catalog.Web.Contracts;
 using AzureSuite.Catalog.Web.Services;
+using AzureSuite.Web.UI;
 using Microsoft.AspNetCore.Components;
 
 namespace AzureSuite.Catalog.Web.Pages
@@ -9,6 +10,9 @@ namespace AzureSuite.Catalog.Web.Pages
     {
         [Inject]
         private CatalogApiClient ApiClient { get; set; } = null!;
+
+        [Inject]
+        private ClientTelemetryLogger ClientTelemetry { get; set; } = null!;
 
         private RegisterMessageTypeRequest Request { get; set; } = new();
 
@@ -25,9 +29,10 @@ namespace AzureSuite.Catalog.Web.Pages
                 ErrorMessage = null;
                 Request = new RegisterMessageTypeRequest();
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
                 ErrorMessage = "Failed to register the message type. It may already exist, or the server is unavailable.";
+                await ClientTelemetry.LogExceptionAsync(ex);
             }
         }
     }

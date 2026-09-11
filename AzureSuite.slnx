@@ -1,8 +1,12 @@
 <Solution>
   <Folder Name="/frontends/">
+    <Project Path="frontends/AzureSuite.Web.UI/AzureSuite.Web.UI.csproj" />
     <Project Path="frontends/Catalog.Web/Catalog.Web.csproj" />
   </Folder>
   <Folder Name="/services/" />
+  <Folder Name="/services/Shared/">
+    <Project Path="services/Shared/AzureSuite.Observability/AzureSuite.Observability.csproj" />
+  </Folder>
   <Folder Name="/services/Catalog/">
     <Project Path="services/Catalog/Catalog.Api/Catalog.Api.csproj" />
     <Project Path="services/Catalog/Catalog.Application/Catalog.Application.csproj" />
@@ -15,5 +19,7 @@
     <Project Path="tests/Catalog.Domain.Tests/Catalog.Domain.Tests.csproj" />
     <Project Path="tests/Catalog.Infrastructure.Tests/Catalog.Infrastructure.Tests.csproj" />
     <Project Path="tests/Catalog.Web.Tests/Catalog.Web.Tests.csproj" />
+    <Project Path="tests/AzureSuite.Web.UI.Tests/AzureSuite.Web.UI.Tests.csproj" />
+    <Project Path="tests/AzureSuite.Observability.Tests/AzureSuite.Observability.Tests.csproj" />
   </Folder>
 </Solution>

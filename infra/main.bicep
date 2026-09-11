@@ -6,6 +6,15 @@ param sqlAdminLogin string
 param sqlAdminPassword string
 param principalId string
 
+module sharedAppInsights 'modules/shared/appinsights.bicep' = {
+  name: 'sharedAppInsights'
+  params: {
+    location: location
+    logAnalyticsWorkspaceName: 'law-messaginghub-dev'
+    appInsightsName: 'appi-messaginghub-dev'
+  }
+}
+
 module catalogKeyVault 'modules/catalog/keyvault.bicep' = {
   name: 'catalogKeyVault'
   params: {
@@ -37,3 +46,4 @@ module catalogStaticWebApp 'modules/catalog/staticwebapp.bicep' = {
 output catalogSqlServerFqdn string = catalogSql.outputs.sqlServerFqdn
 output catalogKeyVaultName string = catalogKeyVault.outputs.keyVaultName
 output catalogStaticWebAppHostname string = catalogStaticWebApp.outputs.defaultHostname
+output sharedAppInsightsConnectionString string = sharedAppInsights.outputs.connectionString

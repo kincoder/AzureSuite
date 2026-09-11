@@ -1,0 +1,26 @@
+@typeparam TItem
+
+<div class="data-table-container">
+    <table class="data-table">
+        <thead>
+            <tr>@HeaderContent</tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Items)
+            {
+                <tr>@RowTemplate(item)</tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TItem> Items { get; set; } = Array.Empty<TItem>();
+
+    [Parameter, EditorRequired]
+    public RenderFragment HeaderContent { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> RowTemplate { get; set; } = null!;
+}
