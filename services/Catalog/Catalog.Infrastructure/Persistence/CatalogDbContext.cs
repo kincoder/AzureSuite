@@ -2,34 +2,38 @@ using AzureSuite.Catalog.Domain.Entities;
 using AzureSuite.Catalog.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
-namespace AzureSuite.Catalog.Infrastructure.Persistence;
-
-public class CatalogDbContext : DbContext
+namespace AzureSuite.Catalog.Infrastructure.Persistence
 {
-    public CatalogDbContext(DbContextOptions<CatalogDbContext> options) : base(options)
+    /// <summary>EF Core context for the Catalog service's own database — owns the MessageTypes table only.</summary>
+    public class CatalogDbContext : DbContext
     {
-    }
-
-    public DbSet<MessageType> MessageTypes => Set<MessageType>();
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<MessageType>(entity =>
+        public CatalogDbContext(DbContextOptions<CatalogDbContext> options) : base(options)
         {
-            entity.HasKey(m => m.Id);
+        }
 
-            entity.Property(m => m.Name)
-                .HasConversion(name => name.Value, value => new MessageTypeName(value))
-                .IsRequired()
-                .HasMaxLength(100);
+        public DbSet<MessageType> MessageTypes => Set<MessageType>();
 
-            entity.Property(m => m.Version)
-                .HasConversion(version => version.Value, value => new MessageTypeVersion(value))
-                .IsRequired()
-                .HasMaxLength(20);
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<MessageType>(entity =>
+            {
+                entity.HasKey(m => m.Id);
 
-            entity.HasIndex(m => new { m.Name, m.Version }).IsUnique();
-            entity.Property(m => m.SchemaDefinition).IsRequired();
-        });
+                // Value objects are stored as their plain string Value via a converter; the
+                // Name/Version columns stay simple strings in the database.
+                entity.Property(m => m.Name)
+                    .HasConversion(name => name.Value, value => new MessageTypeName(value))
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(m => m.Version)
+                    .HasConversion(version => version.Value, value => new MessageTypeVersion(value))
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.HasIndex(m => new { m.Name, m.Version }).IsUnique();
+                entity.Property(m => m.SchemaDefinition).IsRequired();
+            });
+        }
     }
 }

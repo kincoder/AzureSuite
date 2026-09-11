@@ -3,32 +3,33 @@ using AzureSuite.Catalog.Domain.Entities;
 using AzureSuite.Catalog.Domain.ValueObjects;
 using MediatR;
 
-namespace AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
-
-public class RegisterMessageTypeHandler : IRequestHandler<RegisterMessageTypeCommand, MessageTypeDto>
+namespace AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType
 {
-    private readonly IMessageTypeRepository _repository;
-
-    public RegisterMessageTypeHandler(IMessageTypeRepository repository)
+    public class RegisterMessageTypeHandler : IRequestHandler<RegisterMessageTypeCommand, MessageTypeDto>
     {
-        _repository = repository;
-    }
+        private readonly IMessageTypeRepository _repository;
 
-    public async Task<MessageTypeDto> Handle(RegisterMessageTypeCommand request, CancellationToken cancellationToken)
-    {
-        var name = new MessageTypeName(request.Name);
-        var version = new MessageTypeVersion(request.Version);
-
-        var existing = await _repository.GetByNameAndVersionAsync(name, version, cancellationToken);
-        if (existing is not null)
+        public RegisterMessageTypeHandler(IMessageTypeRepository repository)
         {
-            throw new InvalidOperationException(
-                $"Message type '{name}' version '{version}' is already registered.");
+            _repository = repository;
         }
 
-        var messageType = new MessageType(name, version, request.SchemaDefinition);
-        await _repository.AddAsync(messageType, cancellationToken);
+        public async Task<MessageTypeDto> Handle(RegisterMessageTypeCommand request, CancellationToken cancellationToken)
+        {
+            var name = new MessageTypeName(request.Name);
+            var version = new MessageTypeVersion(request.Version);
 
-        return new MessageTypeDto(messageType.Id, messageType.Name.Value, messageType.Version.Value, messageType.SchemaDefinition, messageType.RegisteredAtUtc);
+            var existing = await _repository.GetByNameAndVersionAsync(name, version, cancellationToken);
+            if (existing is not null)
+            {
+                throw new InvalidOperationException(
+                    $"Message type '{name}' version '{version}' is already registered.");
+            }
+
+            var messageType = new MessageType(name, version, request.SchemaDefinition);
+            await _repository.AddAsync(messageType, cancellationToken);
+
+            return new MessageTypeDto(messageType.Id, messageType.Name.Value, messageType.Version.Value, messageType.SchemaDefinition, messageType.RegisteredAtUtc);
+        }
     }
 }

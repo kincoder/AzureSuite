@@ -1,23 +1,32 @@
-namespace AzureSuite.Catalog.Domain.ValueObjects;
-
-public sealed record MessageTypeName
+namespace AzureSuite.Catalog.Domain.ValueObjects
 {
-    public string Value { get; }
-
-    public MessageTypeName(string value)
+    /// <summary>
+    /// The unique name of a financial message type in the Catalog, e.g. "pacs.008" or "camt.054".
+    /// Combined with <see cref="MessageTypeVersion"/>, identifies exactly one registered schema.
+    /// </summary>
+    public sealed record MessageTypeName
     {
-        if (string.IsNullOrWhiteSpace(value))
+        /// <summary>The raw name value, e.g. "pacs.008".</summary>
+        public string Value { get; }
+
+        public MessageTypeName(string value)
         {
-            throw new ArgumentException("Message type name is required.", nameof(value));
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException("Message type name is required.", nameof(value));
+            }
+
+            if (value.Length > 100)
+            {
+                throw new ArgumentException("Message type name must be 100 characters or fewer.", nameof(value));
+            }
+
+            Value = value;
         }
 
-        if (value.Length > 100)
+        public override string ToString()
         {
-            throw new ArgumentException("Message type name must be 100 characters or fewer.", nameof(value));
+            return Value;
         }
-
-        Value = value;
     }
-
-    public override string ToString() => Value;
 }
