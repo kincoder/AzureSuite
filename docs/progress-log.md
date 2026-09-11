@@ -1,9 +1,22 @@
 # AzureSuite — Progress Log
 
-This is a study-case C# solution to hands-on learn most of Azure: API auth, SSO UI,
-SQL + Mongo, Service Bus, Functions, App Insights, and IaC (Bicep) + CI/CD (GitHub Actions).
+This is a study-case C# solution to hands-on learn most of Azure via IaC (Bicep) + CI/CD
+(GitHub Actions), built around a **financial messaging hub** domain.
 
-## Milestone (2026-09-02): end-to-end flow working
+## Pivot (2026-09-11): reset to an upfront end-to-end design
+
+The original payments/PACS.008 scaffold (below, kept for history) worked end to end but
+was built feature-by-feature without a full design, and the frontend direction
+(micro-frontends) was adopted mid-build rather than decided upfront. Reset: all old
+code/infra removed from the repo, `rg-azuresuite-dev` and its two Entra ID app
+registrations (`AzureSuite-Api`, `AzureSuite-Web`) deleted from Azure. New direction is
+fully specified first — see
+`docs/superpowers/specs/2026-09-11-financial-messaging-hub-design.md` — before any
+implementation resumes. Everything below this point describes the superseded build,
+kept as reference for tooling/gotchas that likely still apply (EF Core setup,
+DefaultAzureCredential slowness locally, Key Vault secret naming, etc.).
+
+## Milestone (2026-09-02): end-to-end flow working (superseded, see pivot above)
 
 Sign in on the Blazor Web UI (Entra ID) → submit a PACS.008 message via the form →
 Web calls the API with an acquired token → API validates it, runs it through the
