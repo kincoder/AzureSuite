@@ -1,3 +1,4 @@
+using AzureSuite.Catalog.Api.Contracts;
 using AzureSuite.Catalog.Application.Abstractions;
 using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
@@ -6,6 +7,7 @@ using AzureSuite.Catalog.Infrastructure.Persistence;
 using AzureSuite.Catalog.Infrastructure.Persistence.Repositories;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 namespace AzureSuite.Catalog.Api
 {
@@ -35,6 +37,7 @@ namespace AzureSuite.Catalog.Api
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
+                app.MapScalarApiReference();
             }
 
             app.UseHttpsRedirection();
@@ -60,7 +63,4 @@ namespace AzureSuite.Catalog.Api
             app.Run();
         }
     }
-
-    /// <summary>Request body for registering a new message type via <c>POST /message-types</c>.</summary>
-    public record RegisterMessageTypeRequest(string Name, string Version, string SchemaDefinition);
 }
