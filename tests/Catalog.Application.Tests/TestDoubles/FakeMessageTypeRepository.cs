@@ -1,0 +1,29 @@
+using AzureSuite.Catalog.Application.Abstractions;
+using AzureSuite.Catalog.Domain.Entities;
+using AzureSuite.Catalog.Domain.ValueObjects;
+
+namespace Catalog.Application.Tests.TestDoubles
+{
+    /// <summary>In-memory <see cref="IMessageTypeRepository"/> test double, used in place of a mocking library.</summary>
+    public class FakeMessageTypeRepository : IMessageTypeRepository
+    {
+        private readonly List<MessageType> _messageTypes = new();
+
+        public Task AddAsync(MessageType messageType, CancellationToken cancellationToken)
+        {
+            _messageTypes.Add(messageType);
+            return Task.CompletedTask;
+        }
+
+        public Task<MessageType?> GetByNameAndVersionAsync(MessageTypeName name, MessageTypeVersion version, CancellationToken cancellationToken)
+        {
+            var found = _messageTypes.FirstOrDefault(m => m.Name == name && m.Version == version);
+            return Task.FromResult(found);
+        }
+
+        public Task<IReadOnlyList<MessageType>> ListAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<MessageType>>(_messageTypes.ToList());
+        }
+    }
+}
