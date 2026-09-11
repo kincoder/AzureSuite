@@ -1,36 +1,38 @@
 @page "/"
 
-<h3>Registered Message Types</h3>
+<PageHeader Title="Registered Message Types" Eyebrow="Catalog">
+    <Actions>
+        <AppButton Href="/register" Variant="AppButtonVariant.Primary">Register a new message type</AppButton>
+    </Actions>
+</PageHeader>
 
 @if (ErrorMessage is not null)
 {
-    <p class="error">@ErrorMessage</p>
+    <ErrorState Message="@ErrorMessage" />
 }
 else if (MessageTypes is null)
 {
-    <p>Loading...</p>
+    <div class="card-grid">
+        @for (var i = 0; i < 6; i++)
+        {
+            <SkeletonCard />
+        }
+    </div>
 }
 else if (MessageTypes.Count == 0)
 {
-    <p>No message types registered yet.</p>
+    <EmptyState Message="No message types registered yet." />
 }
 else
 {
-    <table>
-        <thead>
-            <tr><th>Name</th><th>Version</th><th>Registered</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var messageType in MessageTypes)
-            {
-                <tr>
-                    <td>@messageType.Name</td>
-                    <td>@messageType.Version</td>
-                    <td>@messageType.RegisteredAtUtc</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="card-grid">
+        @foreach (var messageType in MessageTypes)
+        {
+            <AppCard>
+                <h3>@messageType.Name</h3>
+                <AppBadge>@messageType.Version</AppBadge>
+                <p class="subtitle">Registered @messageType.RegisteredAtUtc</p>
+            </AppCard>
+        }
+    </div>
 }
-
-<a href="/register">Register a new message type</a>
