@@ -23,4 +23,14 @@ public class RegisterMessageTypeRenderTests : BunitContext
         submit.ClassList.Should().Contain("app-button-primary");
         submit.TextContent.Should().Be("Register");
     }
+
+    [Fact]
+    public void RendersBackToListLinkInPageHeader()
+    {
+        var cut = Render<RegisterMessageType>();
+
+        var backLink = cut.Find(".page-header a");
+        backLink.GetAttribute("href").Should().Be("/");
+        backLink.TextContent.Should().Be("Back to list");
+    }
 }

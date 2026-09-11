@@ -1,6 +1,10 @@
 @page "/register"
 
-<PageHeader Title="Register Message Type" Eyebrow="Catalog" />
+<PageHeader Title="Register Message Type" Eyebrow="Catalog">
+    <Actions>
+        <AppButton Href="/" Variant="AppButtonVariant.Secondary">Back to list</AppButton>
+    </Actions>
+</PageHeader>
 
 <EditForm Model="@Request" OnValidSubmit="@SubmitAsync">
     <div class="form-group">
