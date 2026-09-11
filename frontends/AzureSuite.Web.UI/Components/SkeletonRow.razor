@@ -1,0 +1,9 @@
+@for (var i = 0; i < ColumnCount; i++)
+{
+    <td><div class="skeleton-line"></div></td>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public int ColumnCount { get; set; }
+}

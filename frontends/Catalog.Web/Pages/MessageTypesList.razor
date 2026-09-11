@@ -1,4 +1,5 @@
 @page "/"
+@using AzureSuite.Catalog.Application.MessageTypes
 
 <PageHeader Title="Registered Message Types" Eyebrow="Catalog">
     <Actions>
@@ -12,11 +13,18 @@
 }
 else if (MessageTypes is null)
 {
-    <div class="card-grid">
-        @for (var i = 0; i < 6; i++)
-        {
-            <SkeletonCard />
-        }
+    <div class="data-table-container">
+        <table class="data-table">
+            <thead>
+                <tr><th>Name</th><th>Version</th><th>Registered</th></tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < 6; i++)
+                {
+                    <tr><SkeletonRow ColumnCount="3" /></tr>
+                }
+            </tbody>
+        </table>
     </div>
 }
 else if (MessageTypes.Count == 0)
@@ -25,14 +33,16 @@ else if (MessageTypes.Count == 0)
 }
 else
 {
-    <div class="card-grid">
-        @foreach (var messageType in MessageTypes)
-        {
-            <AppCard>
-                <h3>@messageType.Name</h3>
-                <AppBadge>@messageType.Version</AppBadge>
-                <p class="subtitle">Registered @messageType.RegisteredAtUtc</p>
-            </AppCard>
-        }
-    </div>
+    <DataTable Items="MessageTypes" TItem="MessageTypeDto">
+        <HeaderContent>
+            <th>Name</th>
+            <th>Version</th>
+            <th>Registered</th>
+        </HeaderContent>
+        <RowTemplate Context="messageType">
+            <td>@messageType.Name</td>
+            <td><AppBadge>@messageType.Version</AppBadge></td>
+            <td>@messageType.RegisteredAtUtc</td>
+        </RowTemplate>
+    </DataTable>
 }
