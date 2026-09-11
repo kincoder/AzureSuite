@@ -1,4 +1,5 @@
 using AzureSuite.Catalog.Domain.Entities;
+using AzureSuite.Catalog.Domain.ValueObjects;
 using FluentAssertions;
 using Xunit;
 
@@ -9,35 +10,32 @@ public class MessageTypeTests
     [Fact]
     public void Constructor_WithValidArguments_SetsProperties()
     {
-        var messageType = new MessageType("pacs.008", "1.0", "{ \"type\": \"object\" }");
+        var name = new MessageTypeName("pacs.008");
+        var version = new MessageTypeVersion("1.0");
 
-        messageType.Name.Should().Be("pacs.008");
-        messageType.Version.Should().Be("1.0");
+        var messageType = new MessageType(name, version, "{ \"type\": \"object\" }");
+
+        messageType.Name.Should().Be(name);
+        messageType.Version.Should().Be(version);
         messageType.SchemaDefinition.Should().Be("{ \"type\": \"object\" }");
         messageType.Id.Should().NotBeEmpty();
         messageType.RegisteredAtUtc.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Constructor_WithInvalidName_ThrowsArgumentException(string? invalidName)
+    [Fact]
+    public void Constructor_WithNullName_ThrowsArgumentNullException()
     {
-        var act = () => new MessageType(invalidName!, "1.0", "{}");
+        var act = () => new MessageType(null!, new MessageTypeVersion("1.0"), "{}");
 
-        act.Should().Throw<ArgumentException>().WithParameterName("name");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("name");
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Constructor_WithInvalidVersion_ThrowsArgumentException(string? invalidVersion)
+    [Fact]
+    public void Constructor_WithNullVersion_ThrowsArgumentNullException()
     {
-        var act = () => new MessageType("pacs.008", invalidVersion!, "{}");
+        var act = () => new MessageType(new MessageTypeName("pacs.008"), null!, "{}");
 
-        act.Should().Throw<ArgumentException>().WithParameterName("version");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("version");
     }
 
     [Theory]
@@ -46,7 +44,7 @@ public class MessageTypeTests
     [InlineData("   ")]
     public void Constructor_WithInvalidSchemaDefinition_ThrowsArgumentException(string? invalidSchema)
     {
-        var act = () => new MessageType("pacs.008", "1.0", invalidSchema!);
+        var act = () => new MessageType(new MessageTypeName("pacs.008"), new MessageTypeVersion("1.0"), invalidSchema!);
 
         act.Should().Throw<ArgumentException>().WithParameterName("schemaDefinition");
     }

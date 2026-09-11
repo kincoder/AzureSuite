@@ -1,24 +1,19 @@
+using AzureSuite.Catalog.Domain.ValueObjects;
+
 namespace AzureSuite.Catalog.Domain.Entities;
 
 public class MessageType
 {
     public Guid Id { get; }
-    public string Name { get; }
-    public string Version { get; }
+    public MessageTypeName Name { get; }
+    public MessageTypeVersion Version { get; }
     public string SchemaDefinition { get; }
     public DateTime RegisteredAtUtc { get; }
 
-    public MessageType(string name, string version, string schemaDefinition)
+    public MessageType(MessageTypeName name, MessageTypeVersion version, string schemaDefinition)
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("Name is required.", nameof(name));
-        }
-
-        if (string.IsNullOrWhiteSpace(version))
-        {
-            throw new ArgumentException("Version is required.", nameof(version));
-        }
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(version);
 
         if (string.IsNullOrWhiteSpace(schemaDefinition))
         {
