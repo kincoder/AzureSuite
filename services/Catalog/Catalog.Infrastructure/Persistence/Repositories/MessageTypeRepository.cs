@@ -1,0 +1,32 @@
+using AzureSuite.Catalog.Application.Abstractions;
+using AzureSuite.Catalog.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace AzureSuite.Catalog.Infrastructure.Persistence.Repositories;
+
+public class MessageTypeRepository : IMessageTypeRepository
+{
+    private readonly CatalogDbContext _context;
+
+    public MessageTypeRepository(CatalogDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task AddAsync(MessageType messageType, CancellationToken cancellationToken)
+    {
+        _context.MessageTypes.Add(messageType);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public Task<MessageType?> GetByNameAndVersionAsync(string name, string version, CancellationToken cancellationToken)
+    {
+        return _context.MessageTypes
+            .FirstOrDefaultAsync(m => m.Name == name && m.Version == version, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MessageType>> ListAsync(CancellationToken cancellationToken)
+    {
+        return await _context.MessageTypes.ToListAsync(cancellationToken);
+    }
+}
