@@ -1,4 +1,5 @@
 using AzureSuite.Catalog.Api.Contracts;
+using AzureSuite.Catalog.Api.Persistence;
 using AzureSuite.Catalog.Application.Abstractions;
 using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
@@ -22,8 +23,19 @@ namespace AzureSuite.Catalog.Api
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterMessageTypeCommand).Assembly));
             builder.Services.AddScoped<IMessageTypeRepository, MessageTypeRepository>();
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policy =>
+                {
+                    policy.WithOrigins("https://localhost:7100", "http://localhost:5100")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
+
             var connectionString = builder.Configuration.GetConnectionString("CatalogDb");
-            if (string.IsNullOrEmpty(connectionString))
+            var usingInMemory = string.IsNullOrEmpty(connectionString);
+            if (usingInMemory)
             {
                 builder.Services.AddDbContext<CatalogDbContext>(options => options.UseInMemoryDatabase("CatalogDb"));
             }
@@ -33,6 +45,15 @@ namespace AzureSuite.Catalog.Api
             }
 
             var app = builder.Build();
+
+            app.UseCors();
+
+            if (usingInMemory)
+            {
+                using var scope = app.Services.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+                InMemorySeedData.Apply(context);
+            }
 
             if (app.Environment.IsDevelopment())
             {
