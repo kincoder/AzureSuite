@@ -77,14 +77,14 @@ xUnit, FluentAssertions, Bicep.
   Infrastructure, Api → all three) is wired correctly before any real code
   exists.
 
-- [ ] **Step 1: Create the solution file**
+- [x] **Step 1: Create the solution file**
 
 Run:
 ```bash
 dotnet new sln -n AzureSuite --format slnx
 ```
 
-- [ ] **Step 2: Scaffold the four service projects**
+- [x] **Step 2: Scaffold the four service projects**
 
 Run:
 ```bash
@@ -94,7 +94,7 @@ dotnet new classlib -n Catalog.Infrastructure -o services/Catalog/Catalog.Infras
 dotnet new webapi -n Catalog.Api -o services/Catalog/Catalog.Api --use-minimal-apis
 ```
 
-- [ ] **Step 3: Scaffold the three test projects**
+- [x] **Step 3: Scaffold the three test projects**
 
 Run:
 ```bash
@@ -103,7 +103,7 @@ dotnet new xunit -n Catalog.Application.Tests -o tests/Catalog.Application.Tests
 dotnet new xunit -n Catalog.Infrastructure.Tests -o tests/Catalog.Infrastructure.Tests
 ```
 
-- [ ] **Step 4: Add project references**
+- [x] **Step 4: Add project references**
 
 Run:
 ```bash
@@ -117,7 +117,7 @@ dotnet add tests/Catalog.Application.Tests reference services/Catalog/Catalog.Ap
 dotnet add tests/Catalog.Infrastructure.Tests reference services/Catalog/Catalog.Infrastructure
 ```
 
-- [ ] **Step 5: Add FluentAssertions to every test project**
+- [x] **Step 5: Add FluentAssertions to every test project**
 
 Run:
 ```bash
@@ -126,14 +126,14 @@ dotnet add tests/Catalog.Application.Tests package FluentAssertions
 dotnet add tests/Catalog.Infrastructure.Tests package FluentAssertions
 ```
 
-- [ ] **Step 6: Add all projects to the solution**
+- [x] **Step 6: Add all projects to the solution**
 
 Run:
 ```bash
 dotnet sln AzureSuite.slnx add services/Catalog/Catalog.Domain services/Catalog/Catalog.Application services/Catalog/Catalog.Infrastructure services/Catalog/Catalog.Api tests/Catalog.Domain.Tests tests/Catalog.Application.Tests tests/Catalog.Infrastructure.Tests
 ```
 
-- [ ] **Step 7: Delete template cruft**
+- [x] **Step 7: Delete template cruft**
 
 The `webapi` template scaffolds a `WeatherForecast.cs` sample — remove it and
 its usage in `Program.cs` (leave `Program.cs` as the bare minimal-API
@@ -160,12 +160,12 @@ app.UseHttpsRedirection();
 app.Run();
 ```
 
-- [ ] **Step 8: Confirm the solution builds**
+- [x] **Step 8: Confirm the solution builds**
 
 Run: `dotnet build AzureSuite.slnx`
 Expected: Build succeeded, 0 warnings, 0 errors.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add AzureSuite.slnx services/Catalog tests/Catalog.Domain.Tests tests/Catalog.Application.Tests tests/Catalog.Infrastructure.Tests
@@ -187,7 +187,7 @@ git commit -m "Scaffold Catalog service project structure"
   `RegisteredAtUtc` (DateTime). Throws `ArgumentException` if `name`,
   `version`, or `schemaDefinition` is null/empty/whitespace.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 using AzureSuite.Catalog.Domain.Entities;
@@ -245,12 +245,12 @@ public class MessageTypeTests
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `dotnet test tests/Catalog.Domain.Tests`
 Expected: FAIL to compile — `MessageType` doesn't exist yet.
 
-- [ ] **Step 3: Implement `MessageType`**
+- [x] **Step 3: Implement `MessageType`**
 
 ```csharp
 namespace AzureSuite.Catalog.Domain.Entities;
@@ -289,12 +289,12 @@ public class MessageType
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `dotnet test tests/Catalog.Domain.Tests`
 Expected: PASS, all 7 test cases green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/Catalog/Catalog.Domain/Entities/MessageType.cs tests/Catalog.Domain.Tests/Entities/MessageTypeTests.cs
@@ -322,7 +322,7 @@ git commit -m "Add MessageType domain entity"
   MessageTypes`. `MessageTypeRepository : IMessageTypeRepository`
   constructed with `CatalogDbContext`.
 
-- [ ] **Step 1: Add EF Core packages**
+- [x] **Step 1: Add EF Core packages**
 
 Run:
 ```bash
@@ -331,7 +331,7 @@ dotnet add services/Catalog/Catalog.Infrastructure package Microsoft.EntityFrame
 dotnet add tests/Catalog.Infrastructure.Tests package Microsoft.EntityFrameworkCore.InMemory
 ```
 
-- [ ] **Step 2: Define the repository abstraction (Application layer)**
+- [x] **Step 2: Define the repository abstraction (Application layer)**
 
 ```csharp
 using AzureSuite.Catalog.Domain.Entities;
@@ -348,7 +348,7 @@ public interface IMessageTypeRepository
 }
 ```
 
-- [ ] **Step 3: Write the failing repository test**
+- [x] **Step 3: Write the failing repository test**
 
 ```csharp
 using AzureSuite.Catalog.Domain.Entities;
@@ -412,12 +412,12 @@ public class MessageTypeRepositoryTests
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they fail**
+- [x] **Step 4: Run tests to verify they fail**
 
 Run: `dotnet test tests/Catalog.Infrastructure.Tests`
 Expected: FAIL to compile — `CatalogDbContext`/`MessageTypeRepository` don't exist yet.
 
-- [ ] **Step 5: Implement `CatalogDbContext`**
+- [x] **Step 5: Implement `CatalogDbContext`**
 
 ```csharp
 using AzureSuite.Catalog.Domain.Entities;
@@ -447,7 +447,7 @@ public class CatalogDbContext : DbContext
 }
 ```
 
-- [ ] **Step 6: Implement `MessageTypeRepository`**
+- [x] **Step 6: Implement `MessageTypeRepository`**
 
 ```csharp
 using AzureSuite.Catalog.Application.Abstractions;
@@ -484,12 +484,12 @@ public class MessageTypeRepository : IMessageTypeRepository
 }
 ```
 
-- [ ] **Step 7: Run tests to verify they pass**
+- [x] **Step 7: Run tests to verify they pass**
 
 Run: `dotnet test tests/Catalog.Infrastructure.Tests`
 Expected: PASS, all 3 tests green.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add services/Catalog/Catalog.Application/Abstractions services/Catalog/Catalog.Infrastructure tests/Catalog.Infrastructure.Tests
@@ -516,7 +516,7 @@ git commit -m "Add Catalog EF Core persistence and MessageTypeRepository"
   MessageTypeDto>` — throws `InvalidOperationException` if a message type
   with the same Name+Version is already registered.
 
-- [ ] **Step 1: Add MediatR package**
+- [x] **Step 1: Add MediatR package**
 
 Run:
 ```bash
@@ -524,7 +524,7 @@ dotnet add services/Catalog/Catalog.Application package MediatR
 dotnet add services/Catalog/Catalog.Api package MediatR
 ```
 
-- [ ] **Step 2: Write the fake repository test double**
+- [x] **Step 2: Write the fake repository test double**
 
 ```csharp
 using AzureSuite.Catalog.Application.Abstractions;
@@ -555,7 +555,7 @@ public class FakeMessageTypeRepository : IMessageTypeRepository
 }
 ```
 
-- [ ] **Step 3: Write the failing handler test**
+- [x] **Step 3: Write the failing handler test**
 
 ```csharp
 using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
@@ -596,12 +596,12 @@ public class RegisterMessageTypeHandlerTests
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they fail**
+- [x] **Step 4: Run tests to verify they fail**
 
 Run: `dotnet test tests/Catalog.Application.Tests`
 Expected: FAIL to compile — command/handler/DTO don't exist yet.
 
-- [ ] **Step 5: Implement `MessageTypeDto`**
+- [x] **Step 5: Implement `MessageTypeDto`**
 
 ```csharp
 namespace AzureSuite.Catalog.Application.MessageTypes;
@@ -609,7 +609,7 @@ namespace AzureSuite.Catalog.Application.MessageTypes;
 public record MessageTypeDto(Guid Id, string Name, string Version, string SchemaDefinition, DateTime RegisteredAtUtc);
 ```
 
-- [ ] **Step 6: Implement `RegisterMessageTypeCommand`**
+- [x] **Step 6: Implement `RegisterMessageTypeCommand`**
 
 ```csharp
 using MediatR;
@@ -619,7 +619,7 @@ namespace AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageTy
 public record RegisterMessageTypeCommand(string Name, string Version, string SchemaDefinition) : IRequest<MessageTypeDto>;
 ```
 
-- [ ] **Step 7: Implement `RegisterMessageTypeHandler`**
+- [x] **Step 7: Implement `RegisterMessageTypeHandler`**
 
 ```csharp
 using AzureSuite.Catalog.Application.Abstractions;
@@ -654,12 +654,12 @@ public class RegisterMessageTypeHandler : IRequestHandler<RegisterMessageTypeCom
 }
 ```
 
-- [ ] **Step 8: Run tests to verify they pass**
+- [x] **Step 8: Run tests to verify they pass**
 
 Run: `dotnet test tests/Catalog.Application.Tests`
 Expected: PASS, both tests green.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add services/Catalog/Catalog.Application tests/Catalog.Application.Tests
@@ -684,7 +684,7 @@ git commit -m "Add RegisterMessageType command"
   IRequest<MessageTypeDto?>`. `ListMessageTypesQuery() :
   IRequest<IReadOnlyList<MessageTypeDto>>`.
 
-- [ ] **Step 1: Write the failing GetMessageType test**
+- [x] **Step 1: Write the failing GetMessageType test**
 
 ```csharp
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
@@ -722,7 +722,7 @@ public class GetMessageTypeHandlerTests
 }
 ```
 
-- [ ] **Step 2: Write the failing ListMessageTypes test**
+- [x] **Step 2: Write the failing ListMessageTypes test**
 
 ```csharp
 using AzureSuite.Catalog.Application.MessageTypes.Queries.ListMessageTypes;
@@ -751,12 +751,12 @@ public class ListMessageTypesHandlerTests
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `dotnet test tests/Catalog.Application.Tests`
 Expected: FAIL to compile — queries/handlers don't exist yet.
 
-- [ ] **Step 4: Implement `GetMessageTypeQuery` and handler**
+- [x] **Step 4: Implement `GetMessageTypeQuery` and handler**
 
 ```csharp
 using MediatR;
@@ -794,7 +794,7 @@ public class GetMessageTypeHandler : IRequestHandler<GetMessageTypeQuery, Messag
 }
 ```
 
-- [ ] **Step 5: Implement `ListMessageTypesQuery` and handler**
+- [x] **Step 5: Implement `ListMessageTypesQuery` and handler**
 
 ```csharp
 using MediatR;
@@ -829,12 +829,12 @@ public class ListMessageTypesHandler : IRequestHandler<ListMessageTypesQuery, IR
 }
 ```
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `dotnet test tests/Catalog.Application.Tests`
 Expected: PASS, all tests green (4 new + 2 from Task 4 = 6 total).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add services/Catalog/Catalog.Application/MessageTypes/Queries tests/Catalog.Application.Tests/MessageTypes/Queries
@@ -861,7 +861,7 @@ git commit -m "Add GetMessageType and ListMessageTypes queries"
   404), `GET /message-types` (returns 200 with
   `IReadOnlyList<MessageTypeDto>`).
 
-- [ ] **Step 1: Scaffold the API test project**
+- [x] **Step 1: Scaffold the API test project**
 
 Run:
 ```bash
@@ -872,7 +872,7 @@ dotnet add tests/Catalog.Api.Tests package Microsoft.AspNetCore.Mvc.Testing
 dotnet sln AzureSuite.slnx add tests/Catalog.Api.Tests
 ```
 
-- [ ] **Step 2: Write the failing integration test**
+- [x] **Step 2: Write the failing integration test**
 
 ```csharp
 using System.Net;
@@ -938,7 +938,7 @@ namespace Catalog.Api.Tests
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `dotnet test tests/Catalog.Api.Tests`
 Expected: FAIL — endpoints don't exist / DI not configured (`Program` is
@@ -946,7 +946,7 @@ already a public class from Task 1, so `WebApplicationFactory<Program>`
 resolves fine — no partial-class trick needed since this project never used
 top-level statements).
 
-- [ ] **Step 4: Wire DI and endpoints in `Program.cs`**
+- [x] **Step 4: Wire DI and endpoints in `Program.cs`**
 
 ```csharp
 using AzureSuite.Catalog.Application.Abstractions;
@@ -1017,17 +1017,17 @@ namespace AzureSuite.Catalog.Api
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `dotnet test tests/Catalog.Api.Tests`
 Expected: PASS, all 3 tests green.
 
-- [ ] **Step 6: Run the full solution test suite**
+- [x] **Step 6: Run the full solution test suite**
 
 Run: `dotnet test AzureSuite.slnx`
 Expected: PASS, every test project green, 0 warnings.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add services/Catalog/Catalog.Api tests/Catalog.Api.Tests AzureSuite.slnx
@@ -1050,7 +1050,7 @@ git commit -m "Add Catalog minimal API endpoints"
   the same patterns already proven in the superseded build (serverless
   free-tier SQL, RBAC-based Key Vault, `az.getSecret()` in `.bicepparam`).
 
-- [ ] **Step 1: Choose and record the naming convention**
+- [x] **Step 1: Choose and record the naming convention**
 
 New resource group name: `rg-messaginghub-dev`. Resource naming pattern:
 `<type>-messaginghub-catalog-dev` (Key Vault shortened to
@@ -1059,14 +1059,14 @@ New resource group name: `rg-messaginghub-dev`. Resource naming pattern:
 before writing Bicep, so later services (Ingestion, Routing, ...) follow the
 same pattern with their own service segment.
 
-- [ ] **Step 2: Create the resource group manually (learning step, per project convention)**
+- [x] **Step 2: Create the resource group manually (learning step, per project convention)**
 
 Run:
 ```bash
 az group create --name rg-messaginghub-dev --location westeurope
 ```
 
-- [ ] **Step 3: Write `infra/modules/catalog/keyvault.bicep`**
+- [x] **Step 3: Write `infra/modules/catalog/keyvault.bicep`**
 
 ```bicep
 param location string
@@ -1100,7 +1100,7 @@ resource secretsOfficerRole 'Microsoft.Authorization/roleAssignments@2022-04-01'
 output keyVaultName string = keyVault.name
 ```
 
-- [ ] **Step 4: Write `infra/modules/catalog/sql.bicep`**
+- [x] **Step 4: Write `infra/modules/catalog/sql.bicep`**
 
 ```bicep
 param location string
@@ -1148,7 +1148,7 @@ resource database 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
 output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
 ```
 
-- [ ] **Step 5: Write `infra/main.bicep`**
+- [x] **Step 5: Write `infra/main.bicep`**
 
 ```bicep
 targetScope = 'resourceGroup'
@@ -1183,7 +1183,7 @@ output catalogSqlServerFqdn string = catalogSql.outputs.sqlServerFqdn
 output catalogKeyVaultName string = catalogKeyVault.outputs.keyVaultName
 ```
 
-- [ ] **Step 6: Write `infra/main.dev.bicepparam`**
+- [x] **Step 6: Write `infra/main.dev.bicepparam`**
 
 ```bicep
 using 'main.bicep'
@@ -1203,7 +1203,7 @@ secret set`, then deploy the full template. Record the exact steps taken in
 `docs/progress-log.md` once done, since the exact CLI incantation matters
 for next time.
 
-- [ ] **Step 7: Validate with what-if**
+- [x] **Step 7: Validate with what-if**
 
 Run:
 ```bash
@@ -1211,7 +1211,7 @@ az deployment group what-if --resource-group rg-messaginghub-dev --template-file
 ```
 Expected: shows planned creates for the Key Vault, SQL server, firewall rule, and database — no errors.
 
-- [ ] **Step 8: Deploy**
+- [x] **Step 8: Deploy**
 
 Run:
 ```bash
@@ -1219,7 +1219,7 @@ az deployment group create --resource-group rg-messaginghub-dev --template-file 
 ```
 Expected: deployment succeeds; note the `catalogSqlServerFqdn` output.
 
-- [ ] **Step 9: Wire the real connection string into Catalog.Api's user secrets**
+- [x] **Step 9: Wire the real connection string into Catalog.Api's user secrets**
 
 Run:
 ```bash
@@ -1229,7 +1229,7 @@ cd services/Catalog/Catalog.Api
 dotnet user-secrets set "ConnectionStrings:CatalogDb" "$connString"
 ```
 
-- [ ] **Step 10: Generate and apply the first EF Core migration against the real database**
+- [x] **Step 10: Generate and apply the first EF Core migration against the real database**
 
 Run:
 ```bash
@@ -1240,7 +1240,7 @@ dotnet ef database update --startup-project ../Catalog.Api
 ```
 Expected: `MessageTypes` table exists in the `catalog` database on Azure SQL.
 
-- [ ] **Step 11: Manually verify against the real service**
+- [x] **Step 11: Manually verify against the real service**
 
 Run:
 ```bash
@@ -1253,14 +1253,14 @@ API is actually talking to Azure SQL, not the InMemory fallback (remove the
 `appsettings.Development.json` doesn't also define an empty one that would
 shadow the user secret).
 
-- [ ] **Step 12: Update the progress log**
+- [x] **Step 12: Update the progress log**
 
 Add a new section to `docs/progress-log.md` documenting: the new resource
 group name/naming convention, the Key Vault bootstrap sequence actually
 used, and confirmation the Catalog service is live end-to-end against Azure
 SQL.
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add infra docs/progress-log.md
