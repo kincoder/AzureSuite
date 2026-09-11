@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/frontends/">
+    <Project Path="frontends/AzureSuite.Web.UI/AzureSuite.Web.UI.csproj" />
     <Project Path="frontends/Catalog.Web/Catalog.Web.csproj" />
   </Folder>
   <Folder Name="/services/" />
