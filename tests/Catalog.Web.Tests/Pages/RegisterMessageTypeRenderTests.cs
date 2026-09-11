@@ -1,5 +1,6 @@
 using AzureSuite.Catalog.Web.Pages;
 using AzureSuite.Catalog.Web.Services;
+using AzureSuite.Web.UI;
 using Bunit;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,7 @@ public class RegisterMessageTypeRenderTests : BunitContext
     public RegisterMessageTypeRenderTests()
     {
         Services.AddScoped(_ => new CatalogApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
+        Services.AddScoped(_ => new ClientTelemetryLogger(JSInterop.JSRuntime));
     }
 
     [Fact]

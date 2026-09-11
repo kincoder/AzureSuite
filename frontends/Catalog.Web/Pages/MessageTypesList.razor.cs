@@ -1,5 +1,6 @@
 using AzureSuite.Catalog.Application.MessageTypes;
 using AzureSuite.Catalog.Web.Services;
+using AzureSuite.Web.UI;
 using Microsoft.AspNetCore.Components;
 
 namespace AzureSuite.Catalog.Web.Pages
@@ -9,6 +10,9 @@ namespace AzureSuite.Catalog.Web.Pages
     {
         [Inject]
         private CatalogApiClient ApiClient { get; set; } = null!;
+
+        [Inject]
+        private ClientTelemetryLogger ClientTelemetry { get; set; } = null!;
 
         private IReadOnlyList<MessageTypeDto>? MessageTypes { get; set; }
 
@@ -20,9 +24,10 @@ namespace AzureSuite.Catalog.Web.Pages
             {
                 MessageTypes = await ApiClient.GetMessageTypesAsync(CancellationToken.None);
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
                 ErrorMessage = "Failed to load message types. Please try again later.";
+                await ClientTelemetry.LogExceptionAsync(ex);
             }
         }
     }

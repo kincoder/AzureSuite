@@ -318,3 +318,19 @@ function initAppInsights(connectionString, roleName) {
         }
     });
 }
+
+// Sends a caught .NET exception to Application Insights so it shows up under
+// Failures/Exceptions rather than only ever being visible in the browser console.
+// No-ops if Application Insights was never initialized (no connection string configured).
+function logException(message, exceptionType) {
+    if (!window.appInsights) {
+        return;
+    }
+
+    var error = new Error(message);
+    if (exceptionType) {
+        error.name = exceptionType;
+    }
+
+    window.appInsights.trackException({ exception: error });
+}

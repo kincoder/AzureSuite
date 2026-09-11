@@ -1,4 +1,5 @@
 using AzureSuite.Catalog.Web.Services;
+using AzureSuite.Web.UI;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
@@ -18,6 +19,7 @@ namespace AzureSuite.Catalog.Web
                 BaseAddress = new Uri(builder.Configuration["CatalogApiBaseUrl"] ?? "https://localhost:7184")
             });
             builder.Services.AddScoped<CatalogApiClient>();
+            builder.Services.AddScoped<ClientTelemetryLogger>();
 
             var host = builder.Build();
 
