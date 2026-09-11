@@ -16,6 +16,17 @@ implementation resumes. Everything below this point describes the superseded bui
 kept as reference for tooling/gotchas that likely still apply (EF Core setup,
 DefaultAzureCredential slowness locally, Key Vault secret naming, etc.).
 
+## Messaging Hub — infra naming (2026-09-11)
+
+New resource group for the rebuild: `rg-messaginghub-dev` (West Europe, matching the
+prior project's region convention). Per-service naming pattern:
+`<type>-messaginghub-<service>-dev`, e.g. `sql-messaginghub-catalog-dev`. Key Vault
+shortened to `kv-msghub-<service>-dev` (24-char limit), e.g. `kv-msghub-catalog-dev`.
+Each service gets its own SQL server + Key Vault under this one resource group —
+services stay logically separate (own DB, own secrets) without needing a resource
+group per service. Follow this same pattern for Ingestion, Routing, Delivery, Archive,
+Monitoring as they're built.
+
 ## Milestone (2026-09-02): end-to-end flow working (superseded, see pivot above)
 
 Sign in on the Blazor Web UI (Entra ID) → submit a PACS.008 message via the form →
