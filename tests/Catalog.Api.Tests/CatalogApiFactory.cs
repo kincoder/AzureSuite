@@ -16,6 +16,23 @@ namespace Catalog.Api.Tests
     /// </summary>
     public class CatalogApiFactory : WebApplicationFactory<Program>
     {
+        public CatalogApiFactory()
+        {
+            // AzureSuite.Observability's AddAzureSuiteLogging runs synchronously right after
+            // WebApplicationBuilder.CreateBuilder, before WebApplicationFactory's deferred
+            // ConfigureWebHost/ConfigureAppConfiguration overrides are applied (those only
+            // take effect when the host is actually built) — so overriding config that way
+            // arrives too late to affect Serilog's setup. Environment variables, by contrast,
+            // are part of WebApplicationBuilder's default configuration sources added
+            // immediately during CreateBuilder, so setting one here (before the factory boots
+            // the host on first use) is visible in time. This disables the Event Log sink's
+            // source management, which calls EventLog.SourceExists at startup and needs
+            // permissions to enumerate Windows event sources that a test run (local or CI)
+            // may not have; an unmanaged, unregistered source then just fails silently per
+            // write, which Serilog already tolerates.
+            Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Args__manageEventSource", "false");
+        }
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureServices(services =>
