@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\services\Catalog\Catalog.Application\Catalog.Application.csproj" />
+    <ProjectReference Include="..\AzureSuite.Web.UI\AzureSuite.Web.UI.csproj" />
   </ItemGroup>
 
 </Project>
