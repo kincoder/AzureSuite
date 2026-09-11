@@ -1,6 +1,7 @@
 using AzureSuite.Catalog.Web.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.JSInterop;
 
 namespace AzureSuite.Catalog.Web
 {
@@ -18,7 +19,12 @@ namespace AzureSuite.Catalog.Web
             });
             builder.Services.AddScoped<CatalogApiClient>();
 
-            await builder.Build().RunAsync();
+            var host = builder.Build();
+
+            var jsRuntime = host.Services.GetRequiredService<IJSRuntime>();
+            await jsRuntime.InvokeVoidAsync("initAppInsights", builder.Configuration["ApplicationInsightsConnectionString"], "Catalog.Web");
+
+            await host.RunAsync();
         }
     }
 }
