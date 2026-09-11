@@ -195,6 +195,70 @@ az deployment group create --resource-group rg-azuresuite-dev --template-file in
 9. GitHub Actions pipeline (deploy infra + apps).
 10. Hardening (not urgent): retire SQL password entirely (`azureADOnlyAuthentication`),
     integration tests for `[Authorize]`/scopes via `WebApplicationFactory`.
+11. **Microfrontend initiative** — see dedicated section below. Currently blocked on
+    .NET SDK not being installed on this machine; resume there once available.
+
+## Microfrontend initiative (started 2026-09-11)
+
+New learning challenge layered on top of the existing solution: a Blazor **WebAssembly**
+microfrontend UI, at least 3 independently-deployable frontends plus a shell, replacing
+(for this new UI track) the existing server-rendered `AzureSuite.Web`. Decisions made so
+far (discussed before any code was written):
+
+- **Same repo, no new repo.** New projects live under `src/` alongside the existing ones
+  and join the same `AzureSuite.slnx`. Each new project still gets its **own
+  GitHub Actions workflow**, path-filtered to its own folder, so it deploys independently
+  of the others even though they share a repo — that's the actual microfrontend property
+  (independent deployability), not the number of git repos. True one-repo-per-MFE was
+  considered and explicitly declined in favor of this.
+- **Backend unchanged.** `AzureSuite.Api` is *not* rebuilt or split. It gets new endpoints
+  added as each MFE needs them. Microfrontends and microservices are orthogonal — a shared
+  backend serving several independent frontends is a legitimate, simpler setup, and
+  splitting the API per-frontend (BFF pattern) was explicitly deferred as a possible later
+  exercise, not a requirement.
+- **Composition technique: Blazor WASM + Custom Elements** (`[CustomElement]`/`JSExport`,
+  available since .NET 8), not iframes and not server-side reverse-proxy composition. Each
+  MFE is a separate WASM app exposing a Web Component tag; the shell loads their scripts
+  and drops in the tags. Chosen because it's the closest thing to genuine independent
+  build/deploy/runtime microfrontends, and because Blazor Server can't do this (needs a
+  persistent per-app server process, awkward on free tiers).
+- **Hosting: Azure Static Web Apps, Free tier**, one instance per project (4 total).
+  Considered plain Blob Storage static website hosting as an alternative (also near-free)
+  but rejected it for this project: Static Web Apps gives free managed SSL on custom
+  domains, generated GitHub Actions CI/CD, automatic SPA routing fallback config, correct
+  WASM MIME-type/compression handling out of the box, and free PR-preview environments —
+  all of which Blob storage would require doing by hand for no real cost saving at this
+  scale.
+- **Auth model change flagged, not yet resolved**: existing `AzureSuite-Web` app
+  registration uses server-side confidential-client OIDC (token acquired server-side via
+  `IDownstreamApi`). WASM apps are public clients — auth moves to the browser (MSAL.js),
+  and the shell will need to share the signed-in identity with the 3 MFEs (separate WASM
+  runtimes) via some kind of JS-interop bridge. Not designed yet; revisit when auth is
+  actually being wired up.
+- **Planned project names** (not yet scaffolded):
+  - `AzureSuite.FrontEnd.Shell` — host app: layout, nav, sign-in, composes the other three.
+  - `AzureSuite.FrontEnd.Submit` — create a PACS.008 payment message.
+  - `AzureSuite.FrontEnd.Dashboard` — list/search past messages.
+  - `AzureSuite.FrontEnd.Status` — live processing status; deliberately the future home for
+    the still-pending Service Bus/Functions work (open item 7), not a throwaway third app.
+- **Working style for this track**: user wants to be walked through each step (this is a
+  learning project), heavily commented code, and projects/classes created in **small
+  batches** (e.g. one project at a time, not all 4 at once) rather than a large one-shot
+  scaffold — explain the why at each step, pause for feedback before moving to the next.
+
+### Current blocker: .NET SDK not installed on this machine (2026-09-11)
+
+This session is running on a **different machine** (macOS/Darwin) than the one the
+original AzureSuite work was done on (the "Tooling installed on this machine" section
+below describes a Windows machine — winget, PowerShell paths). This Mac has no `dotnet`,
+no Homebrew, nothing — `dotnet new blazorwasm` cannot run here yet.
+
+User explicitly stopped an attempted SDK install (official `dotnet-install.sh` script,
+user-scoped, no sudo) and said: **do not install the SDK right now** — work should pause
+here and resume on a different machine instead. Nothing was scaffolded; no projects exist
+yet for the microfrontend track. Resume by: confirm `dotnet --version` works on the target
+machine (should be .NET 10, matching the rest of this solution), then create
+`AzureSuite.FrontEnd.Shell` first, alone, before touching the other three.
 
 ## Entra ID auth (done)
 
