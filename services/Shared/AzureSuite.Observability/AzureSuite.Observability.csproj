@@ -12,6 +12,12 @@
     <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.1" />
     <PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="5.0.1" />
     <PackageReference Include="Serilog.Sinks.EventLog" Version="4.0.0" />
+    <!--
+      Pinned below 3.0.0: Serilog.Sinks.ApplicationInsights 5.0.1 (latest stable as of writing)
+      requires Microsoft.ApplicationInsights < 3.0.0. Bumping this to the 3.x line reintroduces
+      the NU1608 version conflict that was previously resolved by pinning here; re-check this
+      constraint if Serilog.Sinks.ApplicationInsights ever ships a release supporting 3.x.
+    -->
     <PackageReference Include="Microsoft.ApplicationInsights" Version="2.23.0" />
   </ItemGroup>
 
