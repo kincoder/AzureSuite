@@ -42,6 +42,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Substitute environment configuration
+        run: |
+          sed -i \
+            -e "s|__CATALOG_API_BASE_URL__|${{ vars.CATALOG_API_BASE_URL }}|" \
+            -e "s|__APPLICATION_INSIGHTS_CONNECTION_STRING__|${{ vars.APPLICATION_INSIGHTS_CONNECTION_STRING }}|" \
+            frontends/Catalog.Web/wwwroot/appsettings.json
+
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:

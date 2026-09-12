@@ -14,9 +14,10 @@ namespace AzureSuite.Catalog.Web
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
             builder.RootComponents.RegisterCustomElement<App>("catalog-app");
 
+            var catalogApiBaseUrl = builder.Configuration["CatalogApiBaseUrl"];
             builder.Services.AddScoped(sp => new HttpClient
             {
-                BaseAddress = new Uri(builder.Configuration["CatalogApiBaseUrl"] ?? "https://localhost:7184")
+                BaseAddress = new Uri(string.IsNullOrWhiteSpace(catalogApiBaseUrl) ? "https://localhost:7184" : catalogApiBaseUrl)
             });
             builder.Services.AddScoped<CatalogApiClient>();
             builder.Services.AddScoped<ClientTelemetryLogger>();
