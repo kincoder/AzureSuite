@@ -15,6 +15,7 @@
   </Folder>
   <Folder Name="/services/Ingestion/">
     <Project Path="services/Ingestion/Ingestion.Application/Ingestion.Application.csproj" />
+    <Project Path="services/Ingestion/Ingestion.Infrastructure/Ingestion.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Catalog.Api.Tests/Catalog.Api.Tests.csproj" />
