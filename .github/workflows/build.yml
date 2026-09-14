@@ -63,6 +63,7 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     name: Deploy Catalog.Web
+    environment: azure-dev
 
     permissions:
       contents: read
@@ -92,6 +93,7 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     name: Deploy Catalog.Api
+    environment: azure-dev
 
     permissions:
       contents: read
