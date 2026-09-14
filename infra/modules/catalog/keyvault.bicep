@@ -40,7 +40,8 @@ resource secretsUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
 }
 
 resource catalogDbConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  name: '${keyVault.name}/catalog-db-connection-string'
+  parent: keyVault
+  name: 'catalog-db-connection-string'
   properties: {
     value: connectionStringSecretValue
   }
