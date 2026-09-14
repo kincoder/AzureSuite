@@ -59,6 +59,34 @@ jobs:
           app_location: frontends/Catalog.Web
           output_location: wwwroot
 
+      - name: Verify deployment
+        run: |
+          for i in $(seq 1 10); do
+            content=$(curl -sS -m 15 "${{ vars.CATALOG_WEB_BASE_URL }}/appsettings.json" || echo "")
+            if [ -n "$content" ]; then
+              break
+            fi
+            echo "Attempt $i: site not responding yet, retrying in 15s..."
+            sleep 15
+          done
+
+          if [ -z "$content" ]; then
+            echo "Site never responded"
+            exit 1
+          fi
+
+          if echo "$content" | grep -q "__CATALOG_API_BASE_URL__"; then
+            echo "appsettings.json still contains an unsubstituted placeholder"
+            exit 1
+          fi
+
+          if ! echo "$content" | grep -qF "${{ vars.CATALOG_API_BASE_URL }}"; then
+            echo "appsettings.json does not contain the expected API base URL"
+            exit 1
+          fi
+
+          echo "Deployment verified: appsettings.json correctly substituted"
+
   deploy-catalog-api:
     needs: build-and-test
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
@@ -87,3 +115,19 @@ jobs:
           app-name: app-messaginghub-catalog-dev
           publish-profile: ${{ secrets.AZURE_CATALOG_API_PUBLISH_PROFILE }}
           package: ./publish
+
+      - name: Verify deployment health
+        run: |
+          for i in $(seq 1 10); do
+            status=$(curl -sS -o /dev/null -m 15 -w "%{http_code}" "${{ vars.CATALOG_API_BASE_URL }}/health" || echo "000")
+            if [ "$status" = "200" ]; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Attempt $i: got HTTP $status, retrying in 15s..."
+            sleep 15
+          done
+
+          echo "Health check failed after retries"
+          curl -sS -m 15 "${{ vars.CATALOG_API_BASE_URL }}/health/verbose" || true
+          exit 1
