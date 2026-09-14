@@ -100,6 +100,41 @@ MediatR command, matching Catalog's CQRS layering:
    once Service Bus has durably accepted the message.
 5. Response: `201 { messageId, messageType, version }`.
 
+### Observability
+
+Uses `AzureSuite.Observability`'s existing `AddAzureSuiteLogging` (Serilog →
+App Insights) — same as Catalog.Api, wired from the start rather than
+retrofitted. Structured (not string-interpolated) log events at each step:
+
+- On receipt: `MessageType`/`Version` as submitted (no `MessageId` yet).
+- On envelope validation failure: rejection reason + what was submitted.
+- On successful publish: `MessageId`, `MessageType`, `Version`, Service Bus
+  send latency.
+- On publish failure: `MessageId`, `MessageType`, `Version`, exception.
+
+This deliberately stays App Insights-only, not Cosmos — see "No lifecycle
+events written by Ingestion" below for why.
+
+### No lifecycle events written by Ingestion
+
+Ingestion does **not** write a "Received" (or any) lifecycle event to
+Cosmos, even though the future Validation/Routing stage will. Doing so here
+would be a second dual-write (Cosmos + Service Bus, alongside the HTTP
+response) — exactly the problem the "no Outbox needed" decision above relies
+on Ingestion *not* having. Ownership of the Cosmos lifecycle store belongs
+entirely to whichever stage already subscribes to `messages.raw` and already
+needs to write to Cosmos as part of processing (the future Validation
+stage) — one writer, one place where the dual-write problem is real and
+gets handled properly, not two writers with different reliability
+guarantees for the same data.
+
+For this increment, "was it sent" is answered two ways: synchronously (a
+`201` with `MessageId` *is* proof of a durable publish — failure surfaces as
+an HTTP error, not a silent gap), and after the fact via the structured
+App Insights logs above. The durable "what's the full status of `MessageId`
+X across the whole pipeline" answer doesn't exist until the downstream
+stage does.
+
 ### Auth to Service Bus
 
 Managed identity + RBAC (`Azure Service Bus Data Sender` role scoped to the
