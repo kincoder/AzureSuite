@@ -6,7 +6,9 @@ using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.ListMessageTypes;
 using AzureSuite.Catalog.Infrastructure.Persistence;
+using AzureSuite.Catalog.Infrastructure.Persistence.HealthChecks;
 using AzureSuite.Catalog.Infrastructure.Persistence.Repositories;
+using AzureSuite.Observability.HealthChecks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -24,6 +26,10 @@ namespace AzureSuite.Catalog.Api
             builder.Services.AddOpenApi();
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterMessageTypeCommand).Assembly));
             builder.Services.AddScoped<IMessageTypeRepository, MessageTypeRepository>();
+
+            builder.Services.AddHealthChecks()
+                .AddDbContextCheck<CatalogDbContext>("sql", tags: ["db"])
+                .AddCheck<MessageTypeCatalogPopulatedHealthCheck>("catalog-populated", tags: ["data"]);
 
             builder.Services.AddCors(options =>
             {
@@ -67,6 +73,8 @@ namespace AzureSuite.Catalog.Api
             }
 
             app.UseHttpsRedirection();
+
+            app.MapAzureSuiteHealthChecks();
 
             app.MapPost("/message-types", async (RegisterMessageTypeRequest request, IMediator mediator) =>
             {

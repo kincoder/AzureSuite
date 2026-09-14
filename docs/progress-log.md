@@ -16,6 +16,53 @@ implementation resumes. Everything below this point describes the superseded bui
 kept as reference for tooling/gotchas that likely still apply (EF Core setup,
 DefaultAzureCredential slowness locally, Key Vault secret naming, etc.).
 
+## Catalog.Api deployed to Azure App Service + CI/CD for infra (2026-09-14)
+
+Catalog.Api is now live on a Linux App Service (F1 free tier, `app-messaginghub-catalog-dev`),
+talking to Azure SQL via a Key Vault-referenced connection string over the App Service's
+system-assigned managed identity. Two gotchas hit getting it running:
+1. **Oryx couldn't determine how to start the app** ("Could not find build manifest file at
+   oryx-manifest.toml") because the workflow `dotnet publish`es and zip-deploys a pre-built
+   package rather than letting Oryx build it — fixed with an explicit `appCommandLine: 'dotnet
+   Catalog.Api.dll'` and `SCM_DO_BUILD_DURING_DEPLOYMENT=false` in `appservice.bicep`.
+2. `ASPNETCORE_ENVIRONMENT=Development` is set so `/scalar/v1` stays reachable for now
+   (temporary — revisit once auth/environment separation is addressed).
+
+**Infra CI/CD**: `.github/workflows/deploy-infra.yml` applies `main.bicep` via
+`az deployment group create`, authenticating through an Entra ID app registration
+(`gh-actions-azuresuite`) using **OIDC federated identity** — no stored client secret.
+Triggers only on pushes to `master` touching `infra/**`, plus manual `workflow_dispatch`;
+deliberately decoupled from `build.yml`'s per-push app deploys since infra is comparatively
+static and an idempotent bicep re-apply on every app-only push added nothing but noise.
+No manual-approval gate on this — `azure-dev` is a single low-stakes dev environment, so a
+human-in-the-loop step buys little safety here; that pattern is worth reintroducing once a
+staging/prod environment exists.
+
+All environment-specific config (publish profile, SWA token, API base URL, App Insights
+connection string) lives in the **`azure-dev` GitHub Environment**, not repo-level, since
+it's specific to that one deploy target and won't generalize to a future `staging`/`prod`
+environment otherwise.
+
+**`gh-actions-azuresuite` permission audit** (principal object ID
+`4fc91573-a871-4ea5-b081-cd9bb5356ee2`) — exactly three grants, all scoped to
+`rg-messaginghub-dev` or narrower, nothing at subscription scope:
+- **Contributor** on `rg-messaginghub-dev` — deploy/manage resources; explicitly excludes
+  RBAC management.
+- **Key Vault Secrets User** on `kv-msghub-catalog-dev` only — read secret values (needed
+  for `az.getSecret(...)` in `main.dev.bicepparam` to resolve the SQL admin password
+  headlessly); can't manage the vault or its access policies.
+- **User Access Administrator** on `kv-msghub-catalog-dev` only, with the Portal's
+  auto-attached anti-escalation condition (blocks granting Owner/User Access
+  Administrator/RBAC Admin to anyone, itself included) — needed so `keyvault.bicep`'s two
+  role-assignment resources apply idempotently on every deploy. Without the condition this
+  grant would be a real escalation risk; with it, the SP can only ever hand out
+  vault-scoped Secrets User/Officer, nothing stronger.
+
+**Gotcha worth remembering**: this Azure CLI version (2.89.1) has a bug where
+`az role assignment create`/`list` fail with `MissingSubscription` even with a valid,
+correctly-scoped `--scope`. Workaround: call the ARM REST API directly via `az rest`
+(`PUT`/`GET .../providers/Microsoft.Authorization/roleAssignments/{guid}?api-version=2022-04-01`).
+
 ## Messaging Hub — Catalog service (2026-09-11): first service live end-to-end
 
 Catalog (services/Catalog/) built via TDD per `docs/superpowers/plans/2026-09-11-catalog-service.md`:
