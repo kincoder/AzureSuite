@@ -25,7 +25,14 @@ namespace AzureSuite.Ingestion.Api
             builder.Services.AddSingleton(sp =>
             {
                 var fullyQualifiedNamespace = builder.Configuration["ServiceBus:FullyQualifiedNamespace"];
-                return new ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
+                var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+                {
+                    // Managed Identity is only reachable when running on Azure; probing it locally
+                    // throws AuthenticationFailedException (not CredentialUnavailableException),
+                    // which aborts the credential chain before it reaches AzureCliCredential.
+                    ExcludeManagedIdentityCredential = builder.Environment.IsDevelopment()
+                });
+                return new ServiceBusClient(fullyQualifiedNamespace, credential);
             });
             builder.Services.AddSingleton<IMessagePublisher>(sp =>
             {
