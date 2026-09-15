@@ -16,6 +16,7 @@ module sharedAppInsights 'modules/shared/appinsights.bicep' = {
 }
 
 var catalogKeyVaultName = 'kv-msghub-catalog-dev'
+var ingestionServiceBusNamespaceName = 'sb-messaginghub-ingestion-dev'
 
 module catalogSql 'modules/catalog/sql.bicep' = {
   name: 'catalogSql'
@@ -60,8 +61,39 @@ module catalogStaticWebApp 'modules/catalog/staticwebapp.bicep' = {
   }
 }
 
+module ingestionApi 'modules/ingestion/appservice.bicep' = {
+  name: 'ingestionApi'
+  params: {
+    location: location
+    appServicePlanName: 'asp-messaginghub-ingestion-dev'
+    webAppName: 'app-messaginghub-ingestion-dev'
+    appInsightsConnectionString: sharedAppInsights.outputs.connectionString
+    serviceBusFullyQualifiedNamespace: '${ingestionServiceBusNamespaceName}.servicebus.windows.net'
+    serviceBusQueueName: 'messages.raw'
+  }
+}
+
+module ingestionServiceBus 'modules/ingestion/servicebus.bicep' = {
+  name: 'ingestionServiceBus'
+  params: {
+    location: location
+    serviceBusNamespaceName: ingestionServiceBusNamespaceName
+    apiPrincipalId: ingestionApi.outputs.principalId
+  }
+}
+
+module ingestionStaticWebApp 'modules/ingestion/staticwebapp.bicep' = {
+  name: 'ingestionStaticWebApp'
+  params: {
+    location: location
+    staticWebAppName: 'stapp-messaginghub-ingestion-dev'
+  }
+}
+
 output catalogSqlServerFqdn string = catalogSql.outputs.sqlServerFqdn
 output catalogKeyVaultName string = catalogKeyVault.outputs.keyVaultName
 output catalogStaticWebAppHostname string = catalogStaticWebApp.outputs.defaultHostname
 output catalogApiHostname string = catalogApi.outputs.defaultHostname
+output ingestionApiHostname string = ingestionApi.outputs.defaultHostname
+output ingestionStaticWebAppHostname string = ingestionStaticWebApp.outputs.defaultHostname
 output sharedAppInsightsConnectionString string = sharedAppInsights.outputs.connectionString

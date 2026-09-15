@@ -2,6 +2,7 @@
   <Folder Name="/frontends/">
     <Project Path="frontends/AzureSuite.Web.UI/AzureSuite.Web.UI.csproj" />
     <Project Path="frontends/Catalog.Web/Catalog.Web.csproj" />
+    <Project Path="frontends/Ingestion.Web/Ingestion.Web.csproj" />
   </Folder>
   <Folder Name="/services/" />
   <Folder Name="/services/Shared/">
@@ -13,9 +14,17 @@
     <Project Path="services/Catalog/Catalog.Domain/Catalog.Domain.csproj" />
     <Project Path="services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/services/Ingestion/">
+    <Project Path="services/Ingestion/Ingestion.Application/Ingestion.Application.csproj" />
+    <Project Path="services/Ingestion/Ingestion.Infrastructure/Ingestion.Infrastructure.csproj" />
+    <Project Path="services/Ingestion/Ingestion.Api/Ingestion.Api.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Catalog.Api.Tests/Catalog.Api.Tests.csproj" />
     <Project Path="tests/Catalog.Application.Tests/Catalog.Application.Tests.csproj" />
+    <Project Path="tests/Ingestion.Application.Tests/Ingestion.Application.Tests.csproj" />
+    <Project Path="tests/Ingestion.Api.Tests/Ingestion.Api.Tests.csproj" />
+    <Project Path="tests/Ingestion.Web.Tests/Ingestion.Web.Tests.csproj" />
     <Project Path="tests/Catalog.Domain.Tests/Catalog.Domain.Tests.csproj" />
     <Project Path="tests/Catalog.Infrastructure.Tests/Catalog.Infrastructure.Tests.csproj" />
     <Project Path="tests/Catalog.Web.Tests/Catalog.Web.Tests.csproj" />

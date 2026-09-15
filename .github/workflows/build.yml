@@ -131,3 +131,106 @@ jobs:
           echo "Health check failed after retries"
           curl -sS -m 15 "${{ vars.CATALOG_API_BASE_URL }}/health/verbose" || true
           exit 1
+
+  deploy-ingestion-api:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Deploy Ingestion.Api
+    environment: azure-dev
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        run: dotnet publish services/Ingestion/Ingestion.Api/Ingestion.Api.csproj --configuration Release --output ./publish
+
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: app-messaginghub-ingestion-dev
+          publish-profile: ${{ secrets.AZURE_INGESTION_API_PUBLISH_PROFILE }}
+          package: ./publish
+
+      - name: Verify deployment health
+        run: |
+          for i in $(seq 1 10); do
+            status=$(curl -sS -o /dev/null -m 15 -w "%{http_code}" "${{ vars.INGESTION_API_BASE_URL }}/health" || echo "000")
+            if [ "$status" = "200" ]; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Attempt $i: got HTTP $status, retrying in 15s..."
+            sleep 15
+          done
+
+          echo "Health check failed after retries"
+          curl -sS -m 15 "${{ vars.INGESTION_API_BASE_URL }}/health/verbose" || true
+          exit 1
+
+  deploy-ingestion-web:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Deploy Ingestion.Web
+    environment: azure-dev
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Substitute environment configuration
+        run: |
+          sed -i \
+            -e "s|__INGESTION_API_BASE_URL__|${{ vars.INGESTION_API_BASE_URL }}|" \
+            -e "s|__APPLICATION_INSIGHTS_CONNECTION_STRING__|${{ vars.APPLICATION_INSIGHTS_CONNECTION_STRING }}|" \
+            frontends/Ingestion.Web/wwwroot/appsettings.json
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_INGESTION_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: frontends/Ingestion.Web
+          output_location: wwwroot
+
+      - name: Verify deployment
+        run: |
+          for i in $(seq 1 10); do
+            content=$(curl -sS -m 15 "${{ vars.INGESTION_WEB_BASE_URL }}/appsettings.json" || echo "")
+            if [ -n "$content" ]; then
+              break
+            fi
+            echo "Attempt $i: site not responding yet, retrying in 15s..."
+            sleep 15
+          done
+
+          if [ -z "$content" ]; then
+            echo "Site never responded"
+            exit 1
+          fi
+
+          if echo "$content" | grep -q "__INGESTION_API_BASE_URL__"; then
+            echo "appsettings.json still contains an unsubstituted placeholder"
+            exit 1
+          fi
+
+          if ! echo "$content" | grep -qF "${{ vars.INGESTION_API_BASE_URL }}"; then
+            echo "appsettings.json does not contain the expected API base URL"
+            exit 1
+          fi
+
+          echo "Deployment verified: appsettings.json correctly substituted"
