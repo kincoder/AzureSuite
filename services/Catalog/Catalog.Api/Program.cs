@@ -12,6 +12,7 @@ using AzureSuite.Catalog.Application.Routes.Commands.UpdateRoute;
 using AzureSuite.Catalog.Application.Routes.Commands.DeleteRoute;
 using AzureSuite.Catalog.Application.Routes.Queries.GetRoute;
 using AzureSuite.Catalog.Application.Routes.Queries.ListRoutes;
+using AzureSuite.Catalog.Application.Routes.Queries.LookupRoute;
 using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.ListMessageTypes;
@@ -171,6 +172,12 @@ namespace AzureSuite.Catalog.Api
             {
                 await mediator.Send(new DeleteRouteCommand(id));
                 return Results.NoContent();
+            });
+
+            app.MapGet("/routes/lookup", async (Guid clientId, string messageType, string version, IMediator mediator) =>
+            {
+                var result = await mediator.Send(new LookupRouteQuery(clientId, messageType, version));
+                return Results.Ok(result);
             });
 
             app.Run();
