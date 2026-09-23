@@ -53,5 +53,20 @@ namespace Catalog.Application.Tests.MessageTypes.Queries.ValidateMessage
             result.IsValid.Should().BeFalse();
             result.Errors.Should().ContainSingle(e => e.Contains("not registered"));
         }
+
+        [Fact]
+        public async Task Handle_WithOversizedPayload_ReturnsInvalidWithoutParsing()
+        {
+            // Registered type check is skipped entirely for an oversized payload -- the size
+            // guard runs first, before any repository lookup or JSON parsing, so this uses an
+            // unregistered type name to prove the size check short-circuits ahead of both.
+            var handler = new ValidateMessageHandler(new FakeMessageTypeRepository());
+            var oversizedPayload = new string('a', 1_000_001);
+
+            var result = await handler.Handle(new ValidateMessageQuery("unknown", "1.0", oversizedPayload), CancellationToken.None);
+
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().ContainSingle(e => e.Contains("exceeds the maximum allowed size"));
+        }
     }
 }

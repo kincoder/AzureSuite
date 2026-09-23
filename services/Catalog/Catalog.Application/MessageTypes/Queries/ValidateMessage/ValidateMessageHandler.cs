@@ -8,6 +8,11 @@ namespace AzureSuite.Catalog.Application.MessageTypes.Queries.ValidateMessage
 {
     public class ValidateMessageHandler : IRequestHandler<ValidateMessageQuery, ValidationResultDto>
     {
+        // Payload is untrusted external input (ultimately producer-submitted). JsonDocument.Parse
+        // has no size limit of its own, so an oversized payload would allocate and parse fully
+        // before validation ever runs -- a denial-of-service vector. Reject before parsing.
+        private const int MaxPayloadSizeBytes = 1_000_000;
+
         private readonly IMessageTypeRepository _repository;
 
         public ValidateMessageHandler(IMessageTypeRepository repository)
@@ -17,6 +22,11 @@ namespace AzureSuite.Catalog.Application.MessageTypes.Queries.ValidateMessage
 
         public async Task<ValidationResultDto> Handle(ValidateMessageQuery request, CancellationToken cancellationToken)
         {
+            if (System.Text.Encoding.UTF8.GetByteCount(request.Payload) > MaxPayloadSizeBytes)
+            {
+                return new ValidationResultDto(false, new[] { $"Payload exceeds the maximum allowed size of {MaxPayloadSizeBytes:N0} bytes." });
+            }
+
             var messageType = await _repository.GetByNameAndVersionAsync(
                 new MessageTypeName(request.MessageTypeName),
                 new MessageTypeVersion(request.MessageTypeVersion),
