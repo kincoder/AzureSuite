@@ -7,6 +7,11 @@ using AzureSuite.Catalog.Application.Clients.Commands.UpdateClient;
 using AzureSuite.Catalog.Application.Clients.Commands.DeleteClient;
 using AzureSuite.Catalog.Application.Clients.Queries.GetClient;
 using AzureSuite.Catalog.Application.Clients.Queries.ListClients;
+using AzureSuite.Catalog.Application.Routes.Commands.CreateRoute;
+using AzureSuite.Catalog.Application.Routes.Commands.UpdateRoute;
+using AzureSuite.Catalog.Application.Routes.Commands.DeleteRoute;
+using AzureSuite.Catalog.Application.Routes.Queries.GetRoute;
+using AzureSuite.Catalog.Application.Routes.Queries.ListRoutes;
 using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.ListMessageTypes;
@@ -32,6 +37,7 @@ namespace AzureSuite.Catalog.Api
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterMessageTypeCommand).Assembly));
             builder.Services.AddScoped<IMessageTypeRepository, MessageTypeRepository>();
             builder.Services.AddScoped<IClientRepository, ClientRepository>();
+            builder.Services.AddScoped<IRouteRepository, RouteRepository>();
 
             builder.Services.AddHealthChecks()
                 .AddDbContextCheck<CatalogDbContext>("sql", tags: ["db"])
@@ -127,6 +133,36 @@ namespace AzureSuite.Catalog.Api
             app.MapDelete("/clients/{id:guid}", async (Guid id, IMediator mediator) =>
             {
                 await mediator.Send(new DeleteClientCommand(id));
+                return Results.NoContent();
+            });
+
+            app.MapPost("/routes", async (CreateRouteRequest request, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new CreateRouteCommand(request.ClientId, request.MessageTypeName, request.MessageTypeVersion, request.QueueNames));
+                return Results.Created($"/routes/{dto.Id}", dto);
+            });
+
+            app.MapGet("/routes/{id:guid}", async (Guid id, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new GetRouteQuery(id));
+                return dto is null ? Results.NotFound() : Results.Ok(dto);
+            });
+
+            app.MapGet("/routes", async (IMediator mediator) =>
+            {
+                var dtos = await mediator.Send(new ListRoutesQuery());
+                return Results.Ok(dtos);
+            });
+
+            app.MapPut("/routes/{id:guid}", async (Guid id, UpdateRouteRequest request, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new UpdateRouteCommand(id, request.ClientId, request.MessageTypeName, request.MessageTypeVersion, request.QueueNames));
+                return Results.Ok(dto);
+            });
+
+            app.MapDelete("/routes/{id:guid}", async (Guid id, IMediator mediator) =>
+            {
+                await mediator.Send(new DeleteRouteCommand(id));
                 return Results.NoContent();
             });
 
