@@ -48,8 +48,9 @@ namespace AzureSuite.Ingestion.Api
                 options.AddDefaultPolicy(policy =>
                 {
                     policy.WithOrigins(
-                            "https://localhost:7205",
-                            "http://localhost:5147")
+                            "https://localhost:7206",
+                            "http://localhost:5147",
+                            "https://delightful-sky-05bade503.2.azurestaticapps.net")
                         .AllowAnyHeader()
                         .AllowAnyMethod();
                 });
