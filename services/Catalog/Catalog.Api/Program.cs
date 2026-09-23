@@ -15,6 +15,7 @@ using AzureSuite.Catalog.Application.Routes.Queries.ListRoutes;
 using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.ListMessageTypes;
+using AzureSuite.Catalog.Application.MessageTypes.Queries.ValidateMessage;
 using AzureSuite.Catalog.Infrastructure.Persistence;
 using AzureSuite.Catalog.Infrastructure.Persistence.HealthChecks;
 using AzureSuite.Catalog.Infrastructure.Persistence.Repositories;
@@ -104,6 +105,12 @@ namespace AzureSuite.Catalog.Api
             {
                 var dtos = await mediator.Send(new ListMessageTypesQuery());
                 return Results.Ok(dtos);
+            });
+
+            app.MapPost("/message-types/{name}/{version}/validate", async (string name, string version, ValidateMessageRequest request, IMediator mediator) =>
+            {
+                var result = await mediator.Send(new ValidateMessageQuery(name, version, request.Payload));
+                return Results.Ok(result);
             });
 
             app.MapPost("/clients", async (CreateClientRequest request, IMediator mediator) =>
