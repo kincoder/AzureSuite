@@ -2,6 +2,11 @@ using AzureSuite.Catalog.Api.Contracts;
 using AzureSuite.Catalog.Api.Persistence;
 using AzureSuite.Catalog.Application.Abstractions;
 using AzureSuite.Observability;
+using AzureSuite.Catalog.Application.Clients.Commands.CreateClient;
+using AzureSuite.Catalog.Application.Clients.Commands.UpdateClient;
+using AzureSuite.Catalog.Application.Clients.Commands.DeleteClient;
+using AzureSuite.Catalog.Application.Clients.Queries.GetClient;
+using AzureSuite.Catalog.Application.Clients.Queries.ListClients;
 using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.ListMessageTypes;
@@ -26,6 +31,7 @@ namespace AzureSuite.Catalog.Api
             builder.Services.AddOpenApi();
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterMessageTypeCommand).Assembly));
             builder.Services.AddScoped<IMessageTypeRepository, MessageTypeRepository>();
+            builder.Services.AddScoped<IClientRepository, ClientRepository>();
 
             builder.Services.AddHealthChecks()
                 .AddDbContextCheck<CatalogDbContext>("sql", tags: ["db"])
@@ -92,6 +98,36 @@ namespace AzureSuite.Catalog.Api
             {
                 var dtos = await mediator.Send(new ListMessageTypesQuery());
                 return Results.Ok(dtos);
+            });
+
+            app.MapPost("/clients", async (CreateClientRequest request, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new CreateClientCommand(request.Name));
+                return Results.Created($"/clients/{dto.Id}", dto);
+            });
+
+            app.MapGet("/clients/{id:guid}", async (Guid id, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new GetClientQuery(id));
+                return dto is null ? Results.NotFound() : Results.Ok(dto);
+            });
+
+            app.MapGet("/clients", async (IMediator mediator) =>
+            {
+                var dtos = await mediator.Send(new ListClientsQuery());
+                return Results.Ok(dtos);
+            });
+
+            app.MapPut("/clients/{id:guid}", async (Guid id, UpdateClientRequest request, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new UpdateClientCommand(id, request.Name));
+                return Results.Ok(dto);
+            });
+
+            app.MapDelete("/clients/{id:guid}", async (Guid id, IMediator mediator) =>
+            {
+                await mediator.Send(new DeleteClientCommand(id));
+                return Results.NoContent();
             });
 
             app.Run();
