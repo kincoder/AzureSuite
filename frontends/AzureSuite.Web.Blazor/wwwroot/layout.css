@@ -1,0 +1,76 @@
+/* ---- Top bar: full-bleed toolbar, not boxed with the content ---- */
+
+.app-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    height: 60px;
+    padding: 0 var(--space-6);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.app-nav-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    margin-right: var(--space-3);
+}
+
+.app-mark {
+    width: 9px;
+    height: 9px;
+    background: var(--color-accent);
+    transform: rotate(45deg);
+    flex: none;
+}
+
+.app-nav-link {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    padding: var(--space-2) 0;
+    position: relative;
+}
+
+.app-nav-link:hover {
+    color: var(--color-text);
+}
+
+.app-nav-link.active {
+    color: var(--color-accent);
+}
+
+.app-nav-link.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--color-accent);
+}
+
+/* ---- Content column: this is what stays a readable document width ---- */
+
+.app-main {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: var(--space-7) var(--space-6) var(--space-8);
+}
+
+@media (max-width: 640px) {
+    .app-nav {
+        padding: 0 var(--space-4);
+        gap: var(--space-4);
+    }
+
+    .app-main {
+        padding: var(--space-5) var(--space-4) var(--space-7);
+    }
+}
