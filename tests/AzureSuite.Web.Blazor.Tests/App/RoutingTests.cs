@@ -16,6 +16,14 @@ public class RoutingTests : BunitContext
         Services.AddScoped(_ => new CatalogApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
         Services.AddScoped(_ => new IngestionApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
         Services.AddScoped(_ => new ClientTelemetryLogger(JSInterop.JSRuntime));
+
+        // The fake base address never resolves, so MessageTypesList/SubmitMessage's catch
+        // block calls ClientTelemetry.LogExceptionAsync -- without this, bUnit's strict
+        // JSInterop mode throws on that unconfigured call, which crashes into
+        // AppErrorBoundary and wipes the whole page (no h1 at all). Timing-dependent: only
+        // surfaces if the async HTTP failure resolves before the test's assertion runs,
+        // which is exactly why this passed locally but failed on CI.
+        JSInterop.SetupVoid("logException", _ => true);
     }
 
     [Fact]
