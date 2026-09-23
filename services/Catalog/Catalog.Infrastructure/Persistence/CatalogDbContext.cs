@@ -15,6 +15,8 @@ namespace AzureSuite.Catalog.Infrastructure.Persistence
 
         public DbSet<Client> Clients => Set<Client>();
 
+        public DbSet<Route> Routes => Set<Route>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<MessageType>(entity =>
@@ -47,6 +49,30 @@ namespace AzureSuite.Catalog.Infrastructure.Persistence
                 entity.Property(c => c.Id).ValueGeneratedNever();
                 entity.Property(c => c.Name).IsRequired().HasMaxLength(200);
                 entity.Property(c => c.RegisteredAtUtc).IsRequired();
+            });
+
+            modelBuilder.Entity<Route>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+                entity.Property(r => r.Id).ValueGeneratedNever();
+                entity.Property(r => r.ClientId).IsRequired();
+
+                entity.Property(r => r.MessageTypeName)
+                    .HasConversion(name => name.Value, value => new MessageTypeName(value))
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(r => r.MessageTypeVersion)
+                    .HasConversion(version => version.Value, value => new MessageTypeVersion(value))
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                // Primitive collection of strings -> JSON column (EF Core 8+ default for
+                // relational providers). Simpler than a normalized join table at this scale
+                // (1-3 queue names per route).
+                entity.PrimitiveCollection(r => r.QueueNames).IsRequired();
+
+                entity.HasIndex(r => new { r.ClientId, r.MessageTypeName, r.MessageTypeVersion });
             });
         }
     }
