@@ -1,0 +1,32 @@
+@page "/catalog/routes/register"
+
+<PageHeader Title="Register Route" Eyebrow="Catalog">
+    <Actions>
+        <AppButton Href="/catalog/routes" Variant="AppButtonVariant.Secondary">Back to list</AppButton>
+    </Actions>
+</PageHeader>
+
+<EditForm EditContext="@EditContext" OnValidSubmit="@SubmitAsync">
+    <div class="form-group">
+        <label>Client Id</label>
+        <InputText @bind-Value="ClientIdText" />
+    </div>
+    <div class="form-group">
+        <label>Message Type</label>
+        <InputText @bind-Value="MessageTypeName" />
+    </div>
+    <div class="form-group">
+        <label>Version</label>
+        <InputText @bind-Value="MessageTypeVersion" />
+    </div>
+    <div class="form-group">
+        <label>Queue Names (comma-separated)</label>
+        <InputText @bind-Value="QueueNamesText" />
+    </div>
+    <AppButton Type="submit">Register</AppButton>
+</EditForm>
+
+@if (ErrorMessage is not null)
+{
+    <ErrorState Message="@ErrorMessage" />
+}
