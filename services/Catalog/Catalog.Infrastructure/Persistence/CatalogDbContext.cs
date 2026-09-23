@@ -13,6 +13,8 @@ namespace AzureSuite.Catalog.Infrastructure.Persistence
 
         public DbSet<MessageType> MessageTypes => Set<MessageType>();
 
+        public DbSet<Client> Clients => Set<Client>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<MessageType>(entity =>
@@ -37,6 +39,14 @@ namespace AzureSuite.Catalog.Infrastructure.Persistence
                 entity.HasIndex(m => new { m.Name, m.Version }).IsUnique();
                 entity.Property(m => m.SchemaDefinition).IsRequired();
                 entity.Property(m => m.RegisteredAtUtc).IsRequired();
+            });
+
+            modelBuilder.Entity<Client>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Id).ValueGeneratedNever();
+                entity.Property(c => c.Name).IsRequired().HasMaxLength(200);
+                entity.Property(c => c.RegisteredAtUtc).IsRequired();
             });
         }
     }
