@@ -1,0 +1,33 @@
+@page "/catalog/clients"
+
+<PageHeader Title="Clients" Eyebrow="Catalog">
+    <Actions>
+        <AppButton Href="/catalog/clients/register">Register client</AppButton>
+    </Actions>
+</PageHeader>
+
+@if (Clients is null)
+{
+    <p>Loading...</p>
+}
+else if (Clients.Count == 0)
+{
+    <p class="subtitle">No clients registered yet.</p>
+}
+else
+{
+    <table class="data-table">
+        <thead>
+            <tr><th>Name</th><th>Registered</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var client in Clients)
+            {
+                <tr>
+                    <td>@client.Name</td>
+                    <td>@client.RegisteredAtUtc.ToString("u")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

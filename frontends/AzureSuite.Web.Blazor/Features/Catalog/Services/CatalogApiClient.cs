@@ -28,5 +28,20 @@ namespace AzureSuite.Web.Blazor.Features.Catalog.Services
             response.EnsureSuccessStatusCode();
             return (await response.Content.ReadFromJsonAsync<MessageTypeDto>(cancellationToken))!;
         }
+
+        /// <summary>Retrieves all clients registered in the catalog.</summary>
+        public async Task<IReadOnlyList<ClientDto>> GetClientsAsync(CancellationToken cancellationToken)
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<ClientDto>>("/clients", cancellationToken);
+            return result ?? new List<ClientDto>();
+        }
+
+        /// <summary>Registers a new client in the catalog.</summary>
+        public async Task<ClientDto> CreateClientAsync(CreateClientRequest request, CancellationToken cancellationToken)
+        {
+            var response = await _httpClient.PostAsJsonAsync("/clients", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<ClientDto>(cancellationToken))!;
+        }
     }
 }
