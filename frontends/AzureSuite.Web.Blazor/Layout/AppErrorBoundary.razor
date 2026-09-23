@@ -1,0 +1,10 @@
+@inherits ErrorBoundary
+
+@if (CurrentException is not null)
+{
+    <ErrorState Message="Something went wrong. Please try reloading the page." />
+}
+else
+{
+    @ChildContent
+}

@@ -1,8 +1,6 @@
 <Solution>
   <Folder Name="/frontends/">
-    <Project Path="frontends/AzureSuite.Web.UI/AzureSuite.Web.UI.csproj" />
-    <Project Path="frontends/Catalog.Web/Catalog.Web.csproj" />
-    <Project Path="frontends/Ingestion.Web/Ingestion.Web.csproj" />
+    <Project Path="frontends/AzureSuite.Web.Blazor/AzureSuite.Web.Blazor.csproj" />
   </Folder>
   <Folder Name="/services/" />
   <Folder Name="/services/Shared/">
@@ -24,11 +22,9 @@
     <Project Path="tests/Catalog.Application.Tests/Catalog.Application.Tests.csproj" />
     <Project Path="tests/Ingestion.Application.Tests/Ingestion.Application.Tests.csproj" />
     <Project Path="tests/Ingestion.Api.Tests/Ingestion.Api.Tests.csproj" />
-    <Project Path="tests/Ingestion.Web.Tests/Ingestion.Web.Tests.csproj" />
     <Project Path="tests/Catalog.Domain.Tests/Catalog.Domain.Tests.csproj" />
     <Project Path="tests/Catalog.Infrastructure.Tests/Catalog.Infrastructure.Tests.csproj" />
-    <Project Path="tests/Catalog.Web.Tests/Catalog.Web.Tests.csproj" />
-    <Project Path="tests/AzureSuite.Web.UI.Tests/AzureSuite.Web.UI.Tests.csproj" />
+    <Project Path="tests/AzureSuite.Web.Blazor.Tests/AzureSuite.Web.Blazor.Tests.csproj" />
     <Project Path="tests/AzureSuite.Observability.Tests/AzureSuite.Observability.Tests.csproj" />
   </Folder>
 </Solution>
