@@ -1,0 +1,33 @@
+@page "/catalog/register"
+
+<PageHeader Title="Register Message Type" Eyebrow="Catalog">
+    <Actions>
+        <AppButton Href="/" Variant="AppButtonVariant.Secondary">Back to list</AppButton>
+    </Actions>
+</PageHeader>
+
+<EditForm EditContext="@EditContext" OnValidSubmit="@SubmitAsync">
+    <div class="form-group">
+        <label>Name</label>
+        <InputText @bind-Value="Request.Name" />
+    </div>
+    <div class="form-group">
+        <label>Version</label>
+        <InputText @bind-Value="Request.Version" />
+    </div>
+    <div class="form-group">
+        <label>Schema Definition</label>
+        <InputTextArea @bind-Value="Request.SchemaDefinition" />
+    </div>
+    <AppButton Type="submit">Register</AppButton>
+</EditForm>
+
+@if (ErrorMessage is not null)
+{
+    <ErrorState Message="@ErrorMessage" />
+}
+
+@if (SubmittedMessage is not null)
+{
+    <p class="subtitle">@SubmittedMessage</p>
+}

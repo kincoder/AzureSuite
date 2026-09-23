@@ -1,0 +1,8 @@
+@inherits LayoutComponentBase
+
+<NavMenu />
+<main class="app-main">
+    <AppErrorBoundary @ref="_errorBoundary">
+        @Body
+    </AppErrorBoundary>
+</main>

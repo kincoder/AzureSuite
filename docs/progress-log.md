@@ -3,6 +3,65 @@
 This is a study-case C# solution to hands-on learn most of Azure via IaC (Bicep) + CI/CD
 (GitHub Actions), built around a **financial messaging hub** domain.
 
+## Pivot (2026-09-23): micro-frontend composition abandoned, single Blazor app instead
+
+Built `Shell.Web` on branch `feature/shell-web` to runtime-compose `Catalog.Web` and
+`Ingestion.Web` as independently-booted Blazor WebAssembly custom elements (`<catalog-app>`/
+`<ingestion-app>`), each its own separate WASM runtime sharing one page. Got a working
+version, but debugging a string of increasingly strange bugs (container teardown on
+navigation, a load-race crash, full-page-reload on nav clicks, a routing race producing
+"Page not found", and finally a phantom form submit triggered by clicking an *unrelated* nav
+link) revealed the actual root cause: three independently-booted Blazor WASM runtimes on one
+page each attach their own document-level event delegator, and those cross-talk with each
+other — a click meant for one runtime's element was being misrouted to another runtime's
+handler. This is not a supported configuration; Microsoft's own "multiple Blazor apps"
+guidance only covers apps hosted at different routes with full page navigation between them,
+not multiple runtimes booted simultaneously on one page. Researching the pattern further
+surfaced the deeper point: Blazor WebAssembly has no equivalent to JS Module Federation
+(what Angular/React use for genuine same-page runtime MFE composition with a single shared
+runtime) — its realistic options are iframes (real isolation, real overhead) or one build.
+
+**Decision**: abandon the MFE track for the Blazor side entirely. `Shell.Web`,
+`Catalog.Web`, and `Ingestion.Web` were deleted; `feature/shell-web` was discarded (branch
+deleted, uncommitted work discarded) and a fresh branch,
+`feature/blazor-web-consolidation`, started from `develop`. Built one consolidated Blazor
+WebAssembly app, `AzureSuite.Web.Blazor` (renamed from an interim `AzureSuite.Web` once the
+plan below was set), covering both Catalog and Ingestion features via a standard
+`<Router>`/`MainLayout`/`NavMenu`, vertical-slice folder structure
+(`Features/Catalog/{Pages,Services,Contracts}`, same for `Ingestion`), a custom
+`AppErrorBoundary` (logs to `ClientTelemetryLogger`, recovers on navigation), and an
+`EditContext`-based fix so stale success/error banners on the two forms clear themselves the
+moment a field is edited again. `AzureSuite.Web.UI` (the shared component library) was
+folded into the new project under `UI/` — with only one Blazor frontend left, and a future
+Angular frontend that wouldn't consume Razor components anyway, the separate-library
+indirection no longer served a purpose. All existing tests ported and passing (31 tests in
+the new `AzureSuite.Web.Blazor.Tests`), plus new tests for the error boundary and nav
+active-link highlighting.
+
+**Why the rename to `AzureSuite.Web.Blazor`**: per the plan below, an Angular counterpart is
+planned later (Angular is the stronger MFE choice generally — real Module Federation — and
+comparing the same app built in both stacks is itself the learning exercise). Naming this
+one `.Blazor` up front avoids a second rename later.
+
+**Azure/CI cleanup**: deleted the two now-orphaned Static Web Apps
+(`stapp-messaginghub-catalog-dev`, `stapp-messaginghub-ingestion-dev`) from
+`rg-messaginghub-dev`, and created their replacement, `stapp-messaginghub-web-dev`
+(`https://delightful-sky-05bade503.2.azurestaticapps.net`), both via `az` directly and by
+updating `infra/modules/web/staticwebapp.bicep` + `infra/main.bicep` (the two old
+`modules/{catalog,ingestion}/staticwebapp.bicep` files are gone) so the next `deploy-infra`
+run stays in sync. `.github/workflows/build.yml`'s `deploy-catalog-web`/`deploy-ingestion-web`
+jobs were merged into one `deploy-web` job pointing at `frontends/AzureSuite.Web.Blazor`.
+GitHub `azure-dev` environment: replaced `CATALOG_WEB_BASE_URL`/`INGESTION_WEB_BASE_URL`
+vars with one `WEB_BASE_URL`; replaced `AZURE_STATIC_WEB_APPS_API_TOKEN` with the new app's
+deploy token and deleted the now-orphaned `AZURE_INGESTION_STATIC_WEB_APPS_API_TOKEN` secret.
+`Catalog.Api`/`Ingestion.Api` (the backend App Services) were untouched throughout — this was
+a frontend-only change.
+
+**Planned next step (not started)**: build an Angular equivalent of this same app, with
+Module Federation and its own shell, so the two stacks can be compared head-to-head for a
+learning exercise — see the "Microfrontend initiative" section below for the (now largely
+superseded) original MFE notes, kept for historical context on what was tried first.
+
 ## Pivot (2026-09-11): reset to an upfront end-to-end design
 
 The original payments/PACS.008 scaffold (below, kept for history) worked end to end but

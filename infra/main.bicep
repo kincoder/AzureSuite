@@ -53,14 +53,6 @@ module catalogKeyVault 'modules/catalog/keyvault.bicep' = {
   }
 }
 
-module catalogStaticWebApp 'modules/catalog/staticwebapp.bicep' = {
-  name: 'catalogStaticWebApp'
-  params: {
-    location: location
-    staticWebAppName: 'stapp-messaginghub-catalog-dev'
-  }
-}
-
 module ingestionApi 'modules/ingestion/appservice.bicep' = {
   name: 'ingestionApi'
   params: {
@@ -82,18 +74,17 @@ module ingestionServiceBus 'modules/ingestion/servicebus.bicep' = {
   }
 }
 
-module ingestionStaticWebApp 'modules/ingestion/staticwebapp.bicep' = {
-  name: 'ingestionStaticWebApp'
+module webStaticWebApp 'modules/web/staticwebapp.bicep' = {
+  name: 'webStaticWebApp'
   params: {
     location: location
-    staticWebAppName: 'stapp-messaginghub-ingestion-dev'
+    staticWebAppName: 'stapp-messaginghub-web-dev'
   }
 }
 
 output catalogSqlServerFqdn string = catalogSql.outputs.sqlServerFqdn
 output catalogKeyVaultName string = catalogKeyVault.outputs.keyVaultName
-output catalogStaticWebAppHostname string = catalogStaticWebApp.outputs.defaultHostname
 output catalogApiHostname string = catalogApi.outputs.defaultHostname
 output ingestionApiHostname string = ingestionApi.outputs.defaultHostname
-output ingestionStaticWebAppHostname string = ingestionStaticWebApp.outputs.defaultHostname
+output webStaticWebAppHostname string = webStaticWebApp.outputs.defaultHostname
 output sharedAppInsightsConnectionString string = sharedAppInsights.outputs.connectionString
