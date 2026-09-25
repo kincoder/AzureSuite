@@ -56,12 +56,42 @@
     background: var(--color-accent);
 }
 
+/* ---- Page frame: content grows so the footer sits at the bottom on short pages ---- */
+
+#app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
 /* ---- Content column: this is what stays a readable document width ---- */
 
 .app-main {
+    flex: 1;
+    width: 100%;
     max-width: 880px;
+    box-sizing: border-box;
     margin: 0 auto;
     padding: var(--space-7) var(--space-6) var(--space-8);
+}
+
+/* ---- Footer: full-bleed like the top bar; links to each API's reference page ---- */
+
+.app-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+}
+
+.app-footer-label {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-right: var(--space-2);
 }
 
 @media (max-width: 640px) {
@@ -72,5 +102,9 @@
 
     .app-main {
         padding: var(--space-5) var(--space-4) var(--space-7);
+    }
+
+    .app-footer {
+        padding: var(--space-4);
     }
 }

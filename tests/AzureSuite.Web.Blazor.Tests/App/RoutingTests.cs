@@ -1,3 +1,4 @@
+using AzureSuite.Web.Blazor.Configuration;
 using AzureSuite.Web.Blazor.Features.Catalog.Services;
 using AzureSuite.Web.Blazor.Features.Ingestion.Services;
 using AzureSuite.Web.Blazor.UI;
@@ -16,6 +17,7 @@ public class RoutingTests : BunitContext
         Services.AddScoped(_ => new CatalogApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
         Services.AddScoped(_ => new IngestionApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
         Services.AddScoped(_ => new ClientTelemetryLogger(JSInterop.JSRuntime));
+        Services.AddSingleton(new ApiReferenceLinks([]));
 
         // The fake base address never resolves, so MessageTypesList/SubmitMessage's catch
         // block calls ClientTelemetry.LogExceptionAsync -- without this, bUnit's strict

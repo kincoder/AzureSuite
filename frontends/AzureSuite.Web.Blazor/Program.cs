@@ -1,3 +1,4 @@
+using AzureSuite.Web.Blazor.Configuration;
 using AzureSuite.Web.Blazor.Features.Catalog.Services;
 using AzureSuite.Web.Blazor.Features.Ingestion.Services;
 using AzureSuite.Web.Blazor.UI;
@@ -21,17 +22,14 @@ namespace AzureSuite.Web.Blazor
             // would collide here, since both API clients now live in the same DI container
             // and are both constructor-injected with the unqualified `HttpClient` type --
             // the second registration would silently win for both.
-            var catalogApiBaseUrl = builder.Configuration["CatalogApiBaseUrl"];
-            builder.Services.AddHttpClient<CatalogApiClient>(client =>
-            {
-                client.BaseAddress = new Uri(string.IsNullOrWhiteSpace(catalogApiBaseUrl) ? "https://localhost:7184" : catalogApiBaseUrl);
-            });
+            var catalogApi = new ApiEndpoint("Catalog API", BaseAddress(builder.Configuration["CatalogApiBaseUrl"], "https://localhost:7184"));
+            builder.Services.AddHttpClient<CatalogApiClient>(client => client.BaseAddress = catalogApi.BaseAddress);
 
-            var ingestionApiBaseUrl = builder.Configuration["IngestionApiBaseUrl"];
-            builder.Services.AddHttpClient<IngestionApiClient>(client =>
-            {
-                client.BaseAddress = new Uri(string.IsNullOrWhiteSpace(ingestionApiBaseUrl) ? "https://localhost:7185" : ingestionApiBaseUrl);
-            });
+            var ingestionApi = new ApiEndpoint("Ingestion API", BaseAddress(builder.Configuration["IngestionApiBaseUrl"], "https://localhost:7185"));
+            builder.Services.AddHttpClient<IngestionApiClient>(client => client.BaseAddress = ingestionApi.BaseAddress);
+
+            builder.Services.AddSingleton(new ApiReferenceLinks(
+                builder.HostEnvironment.IsDevelopment() ? [catalogApi, ingestionApi] : []));
 
             builder.Services.AddScoped<ClientTelemetryLogger>();
 
@@ -42,5 +40,8 @@ namespace AzureSuite.Web.Blazor
 
             await host.RunAsync();
         }
+
+        private static Uri BaseAddress(string? configured, string fallback) =>
+            new(string.IsNullOrWhiteSpace(configured) ? fallback : configured);
     }
 }

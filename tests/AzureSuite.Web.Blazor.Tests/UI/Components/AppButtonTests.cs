@@ -31,6 +31,31 @@ public class AppButtonTests : BunitContext
     }
 
     [Fact]
+    public void RendersTargetWithNoopenerWhenTargetIsSet()
+    {
+        var cut = Render<AppButton>(parameters => parameters
+            .Add(p => p.Href, "https://localhost:7184/scalar")
+            .Add(p => p.Target, "_blank")
+            .AddChildContent("Catalog API"));
+
+        var anchor = cut.Find("a");
+        anchor.GetAttribute("target").Should().Be("_blank");
+        anchor.GetAttribute("rel").Should().Be("noopener noreferrer");
+    }
+
+    [Fact]
+    public void OmitsTargetAndRelWhenTargetIsNotSet()
+    {
+        var cut = Render<AppButton>(parameters => parameters
+            .Add(p => p.Href, "/register")
+            .AddChildContent("Register"));
+
+        var anchor = cut.Find("a");
+        anchor.HasAttribute("target").Should().BeFalse();
+        anchor.HasAttribute("rel").Should().BeFalse();
+    }
+
+    [Fact]
     public void RendersSecondaryClassWhenVariantIsSecondary()
     {
         var cut = Render<AppButton>(parameters => parameters

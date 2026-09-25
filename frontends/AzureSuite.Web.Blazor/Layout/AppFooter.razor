@@ -1,0 +1,16 @@
+@using AzureSuite.Web.Blazor.Configuration
+
+@if (Links.Apis.Count > 0)
+{
+    <footer class="app-footer">
+        <span class="app-footer-label">api reference</span>
+        @foreach (var api in Links.Apis)
+        {
+            <AppButton Href="@api.ReferenceUrl.ToString()" Target="_blank" Variant="AppButtonVariant.Secondary">@api.Name</AppButton>
+        }
+    </footer>
+}
+
+@code {
+    [Inject] public ApiReferenceLinks Links { get; set; } = default!;
+}
