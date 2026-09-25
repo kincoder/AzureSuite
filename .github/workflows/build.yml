@@ -133,8 +133,11 @@ jobs:
           dotnet tool install --global dotnet-ef --version 10.0.12
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
+      # dotnet ef reads project metadata before it builds, so the projects must be restored
+      # first: this job starts from a fresh checkout.
       - name: Build migration bundle
         run: |
+          dotnet restore services/Catalog/Catalog.Api/Catalog.Api.csproj
           dotnet ef migrations bundle \
             --project services/Catalog/Catalog.Infrastructure \
             --startup-project services/Catalog/Catalog.Api \
