@@ -1,6 +1,7 @@
 using AzureSuite.Catalog.Api.Contracts;
 using AzureSuite.Catalog.Api.Persistence;
 using AzureSuite.Catalog.Application.Abstractions;
+using AzureSuite.Catalog.Application.Common;
 using AzureSuite.Observability;
 using AzureSuite.Catalog.Application.Clients.Commands.CreateClient;
 using AzureSuite.Catalog.Application.Clients.Commands.UpdateClient;
@@ -146,8 +147,15 @@ namespace AzureSuite.Catalog.Api
 
             app.MapPost("/routes", async (CreateRouteRequest request, IMediator mediator) =>
             {
-                var dto = await mediator.Send(new CreateRouteCommand(request.ClientId, request.MessageTypeName, request.MessageTypeVersion, request.QueueNames));
-                return Results.Created($"/routes/{dto.Id}", dto);
+                try
+                {
+                    var dto = await mediator.Send(new CreateRouteCommand(request.ClientId, request.MessageTypeName, request.MessageTypeVersion, request.QueueNames));
+                    return Results.Created($"/routes/{dto.Id}", dto);
+                }
+                catch (ReferencedEntityNotFoundException ex)
+                {
+                    return Results.BadRequest(ex.Message);
+                }
             });
 
             app.MapGet("/routes/{id:guid}", async (Guid id, IMediator mediator) =>
@@ -164,8 +172,15 @@ namespace AzureSuite.Catalog.Api
 
             app.MapPut("/routes/{id:guid}", async (Guid id, UpdateRouteRequest request, IMediator mediator) =>
             {
-                var dto = await mediator.Send(new UpdateRouteCommand(id, request.ClientId, request.MessageTypeName, request.MessageTypeVersion, request.QueueNames));
-                return Results.Ok(dto);
+                try
+                {
+                    var dto = await mediator.Send(new UpdateRouteCommand(id, request.ClientId, request.MessageTypeName, request.MessageTypeVersion, request.QueueNames));
+                    return Results.Ok(dto);
+                }
+                catch (ReferencedEntityNotFoundException ex)
+                {
+                    return Results.BadRequest(ex.Message);
+                }
             });
 
             app.MapDelete("/routes/{id:guid}", async (Guid id, IMediator mediator) =>

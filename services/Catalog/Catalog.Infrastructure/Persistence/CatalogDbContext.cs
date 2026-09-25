@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AzureSuite.Catalog.Infrastructure.Persistence
 {
-    /// <summary>EF Core context for the Catalog service's own database — owns the MessageTypes table only.</summary>
+    /// <summary>EF Core context for the Catalog service's own database: MessageTypes, Clients and Routes.</summary>
     public class CatalogDbContext : DbContext
     {
         public CatalogDbContext(DbContextOptions<CatalogDbContext> options) : base(options)
@@ -73,6 +73,21 @@ namespace AzureSuite.Catalog.Infrastructure.Persistence
                 entity.PrimitiveCollection(r => r.QueueNames).IsRequired();
 
                 entity.HasIndex(r => new { r.ClientId, r.MessageTypeName, r.MessageTypeVersion });
+
+                // Deleting a client revokes its authorizations, so its routes go with it.
+                entity.HasOne<Client>()
+                    .WithMany()
+                    .HasForeignKey(r => r.ClientId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Routes reference a message type by its natural key (Name, Version) rather than
+                // its Id, so route lookup stays a single-table query. A message type that is
+                // still routed cannot be deleted.
+                entity.HasOne<MessageType>()
+                    .WithMany()
+                    .HasForeignKey(r => new { r.MessageTypeName, r.MessageTypeVersion })
+                    .HasPrincipalKey(m => new { m.Name, m.Version })
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }
