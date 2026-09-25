@@ -1,4 +1,6 @@
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using AzureSuite.Catalog.Application.MessageTypes;
 using AzureSuite.Web.Blazor.Features.Catalog.Contracts;
 
@@ -55,8 +57,23 @@ namespace AzureSuite.Web.Blazor.Features.Catalog.Services
         public async Task<RouteDto> CreateRouteAsync(CreateRouteRequest request, CancellationToken cancellationToken)
         {
             var response = await _httpClient.PostAsJsonAsync("/routes", request, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                throw new HttpRequestException(await ReadBadRequestMessageAsync(response, cancellationToken), null, response.StatusCode);
+            }
+
             response.EnsureSuccessStatusCode();
             return (await response.Content.ReadFromJsonAsync<RouteDto>(cancellationToken))!;
+        }
+
+        // Catalog.Api returns its validation messages as a JSON string body (Results.BadRequest(string)).
+        // Other 400s, e.g. a request body the framework couldn't bind, carry no such message.
+        private static async Task<string> ReadBadRequestMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            return body.StartsWith('"')
+                ? JsonSerializer.Deserialize<string>(body) ?? body
+                : "The request was rejected by the Catalog API (400 Bad Request).";
         }
     }
 }

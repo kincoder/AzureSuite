@@ -24,7 +24,7 @@ else
             @foreach (var route in Routes)
             {
                 <tr>
-                    <td>@route.ClientId</td>
+                    <td>@ClientName(route.ClientId)</td>
                     <td>@route.MessageTypeName</td>
                     <td>@route.MessageTypeVersion</td>
                     <td>@string.Join(", ", route.QueueNames)</td>

@@ -6,25 +6,48 @@
     </Actions>
 </PageHeader>
 
-<EditForm EditContext="@EditContext" OnValidSubmit="@SubmitAsync">
-    <div class="form-group">
-        <label>Client Id</label>
-        <InputText @bind-Value="ClientIdText" />
-    </div>
-    <div class="form-group">
-        <label>Message Type</label>
-        <InputText @bind-Value="MessageTypeName" />
-    </div>
-    <div class="form-group">
-        <label>Version</label>
-        <InputText @bind-Value="MessageTypeVersion" />
-    </div>
-    <div class="form-group">
-        <label>Queue Names (comma-separated)</label>
-        <InputText @bind-Value="QueueNamesText" />
-    </div>
-    <AppButton Type="submit">Register</AppButton>
-</EditForm>
+@if (Clients is not null && MessageTypes is not null)
+{
+    <EditForm EditContext="@EditContext" OnValidSubmit="@SubmitAsync">
+        <div class="form-group">
+            <label for="route-client">Client</label>
+            <InputSelect id="route-client" @bind-Value="SelectedClientId">
+                <option value="">Select a client...</option>
+                @foreach (var client in Clients)
+                {
+                    <option value="@client.Id">@client.Name</option>
+                }
+            </InputSelect>
+            @if (Clients.Count == 0)
+            {
+                <span class="form-hint">No clients yet. <a href="/catalog/clients/register">Register a client</a> first.</span>
+            }
+        </div>
+        <div class="form-group">
+            <label for="route-message-type">Message type</label>
+            <InputSelect id="route-message-type" @bind-Value="SelectedMessageTypeId">
+                <option value="">Select a message type...</option>
+                @foreach (var messageType in MessageTypes)
+                {
+                    <option value="@messageType.Id">@messageType.Name (v@(messageType.Version))</option>
+                }
+            </InputSelect>
+            @if (MessageTypes.Count == 0)
+            {
+                <span class="form-hint">No message types yet. <a href="/catalog/register">Register a message type</a> first.</span>
+            }
+        </div>
+        <div class="form-group">
+            <label for="route-queues">Queue names (comma-separated)</label>
+            <InputText id="route-queues" @bind-Value="QueueNamesText" />
+        </div>
+        <AppButton Type="submit">Register</AppButton>
+    </EditForm>
+}
+else if (ErrorMessage is null)
+{
+    <p>Loading...</p>
+}
 
 @if (ErrorMessage is not null)
 {
