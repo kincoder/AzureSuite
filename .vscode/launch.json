@@ -1,0 +1,50 @@
+{
+    // Nothing here builds the APIs: build first with Ctrl+Shift+B (or a single-project task),
+    // then F5 runs with the debugger, Ctrl+F5 without. The Blazor launcher always builds the
+    // website itself (it runs `dotnet run`), and has no option to skip that.
+    // Ports and ASPNETCORE_ENVIRONMENT come from each project's Properties/launchSettings.json.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Catalog.Api",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/services/Catalog/Catalog.Api/bin/Debug/net10.0/Catalog.Api.dll",
+            "cwd": "${workspaceFolder}/services/Catalog/Catalog.Api",
+            "launchSettingsProfile": "https"
+        },
+        {
+            "name": "Ingestion.Api",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/services/Ingestion/Ingestion.Api/bin/Debug/net10.0/Ingestion.Api.dll",
+            "cwd": "${workspaceFolder}/services/Ingestion/Ingestion.Api",
+            "launchSettingsProfile": "https"
+        },
+        {
+            // Runs the website's dev server, then opens your default browser once it logs
+            // "Now listening on: https://...". The blazorwasm launcher opens its browser before the
+            // site is listening, which left it on about:blank. This does not debug the website's
+            // C# (that runs inside the browser); breakpoints in the APIs still work.
+            "name": "Web.Blazor",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "dotnet",
+            "args": ["run", "--no-build", "--launch-profile", "https"],
+            "cwd": "${workspaceFolder}/frontends/AzureSuite.Web.Blazor",
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "Now listening on:\\s+(https://\\S+)",
+                "uriFormat": "%s"
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "All projects",
+            "configurations": ["Catalog.Api", "Ingestion.Api", "Web.Blazor"],
+            "stopAll": true,
+            "presentation": { "order": 1 }
+        }
+    ]
+}

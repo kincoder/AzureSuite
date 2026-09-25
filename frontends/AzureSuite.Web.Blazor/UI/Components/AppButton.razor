@@ -1,6 +1,7 @@
 @if (Href is not null)
 {
-    <a href="@Href" class="app-button @VariantClass">@ChildContent</a>
+    @* noopener: a page opened in a new tab must not get a handle back to this one. *@
+    <a href="@Href" class="app-button @VariantClass" target="@Target" rel="@(Target is null ? null : "noopener noreferrer")">@ChildContent</a>
 }
 else
 {
@@ -13,6 +14,10 @@ else
 
     [Parameter]
     public string? Href { get; set; }
+
+    /// <summary>Only applies with <see cref="Href"/>, e.g. "_blank" to open in a new tab.</summary>
+    [Parameter]
+    public string? Target { get; set; }
 
     [Parameter]
     public string Type { get; set; } = "button";

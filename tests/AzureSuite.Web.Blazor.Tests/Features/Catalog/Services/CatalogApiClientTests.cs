@@ -78,5 +78,32 @@ namespace AzureSuite.Web.Blazor.Tests.Features.Catalog.Services
 
             await act.Should().ThrowAsync<HttpRequestException>();
         }
+
+        [Fact]
+        public async Task CreateRouteAsync_ThrowsWithApiMessage_WhenApiReturnsBadRequestWithMessage()
+        {
+            var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = JsonContent.Create("Message type 'pacs.008' version '2.0' is not registered.")
+            });
+            var client = new CatalogApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://localhost") });
+
+            var act = () => client.CreateRouteAsync(new CreateRouteRequest(Guid.NewGuid(), "pacs.008", "2.0", new[] { "queue-a" }), CancellationToken.None);
+
+            (await act.Should().ThrowAsync<HttpRequestException>())
+                .Which.Message.Should().Be("Message type 'pacs.008' version '2.0' is not registered.");
+        }
+
+        [Fact]
+        public async Task CreateRouteAsync_ThrowsWithGenericMessage_WhenApiReturnsBadRequestWithoutMessage()
+        {
+            var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.BadRequest));
+            var client = new CatalogApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://localhost") });
+
+            var act = () => client.CreateRouteAsync(new CreateRouteRequest(Guid.NewGuid(), "pacs.008", "1.0", new[] { "queue-a" }), CancellationToken.None);
+
+            (await act.Should().ThrowAsync<HttpRequestException>())
+                .Which.Message.Should().Contain("400 Bad Request");
+        }
     }
 }

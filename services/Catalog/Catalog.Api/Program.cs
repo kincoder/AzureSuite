@@ -1,10 +1,23 @@
 using AzureSuite.Catalog.Api.Contracts;
 using AzureSuite.Catalog.Api.Persistence;
 using AzureSuite.Catalog.Application.Abstractions;
+using AzureSuite.Catalog.Application.Common;
 using AzureSuite.Observability;
+using AzureSuite.Catalog.Application.Clients.Commands.CreateClient;
+using AzureSuite.Catalog.Application.Clients.Commands.UpdateClient;
+using AzureSuite.Catalog.Application.Clients.Commands.DeleteClient;
+using AzureSuite.Catalog.Application.Clients.Queries.GetClient;
+using AzureSuite.Catalog.Application.Clients.Queries.ListClients;
+using AzureSuite.Catalog.Application.Routes.Commands.CreateRoute;
+using AzureSuite.Catalog.Application.Routes.Commands.UpdateRoute;
+using AzureSuite.Catalog.Application.Routes.Commands.DeleteRoute;
+using AzureSuite.Catalog.Application.Routes.Queries.GetRoute;
+using AzureSuite.Catalog.Application.Routes.Queries.ListRoutes;
+using AzureSuite.Catalog.Application.Routes.Queries.LookupRoute;
 using AzureSuite.Catalog.Application.MessageTypes.Commands.RegisterMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.GetMessageType;
 using AzureSuite.Catalog.Application.MessageTypes.Queries.ListMessageTypes;
+using AzureSuite.Catalog.Application.MessageTypes.Queries.ValidateMessage;
 using AzureSuite.Catalog.Infrastructure.Persistence;
 using AzureSuite.Catalog.Infrastructure.Persistence.HealthChecks;
 using AzureSuite.Catalog.Infrastructure.Persistence.Repositories;
@@ -26,6 +39,8 @@ namespace AzureSuite.Catalog.Api
             builder.Services.AddOpenApi();
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterMessageTypeCommand).Assembly));
             builder.Services.AddScoped<IMessageTypeRepository, MessageTypeRepository>();
+            builder.Services.AddScoped<IClientRepository, ClientRepository>();
+            builder.Services.AddScoped<IRouteRepository, RouteRepository>();
 
             builder.Services.AddHealthChecks()
                 .AddDbContextCheck<CatalogDbContext>("sql", tags: ["db"])
@@ -92,6 +107,92 @@ namespace AzureSuite.Catalog.Api
             {
                 var dtos = await mediator.Send(new ListMessageTypesQuery());
                 return Results.Ok(dtos);
+            });
+
+            app.MapPost("/message-types/{name}/{version}/validate", async (string name, string version, ValidateMessageRequest request, IMediator mediator) =>
+            {
+                var result = await mediator.Send(new ValidateMessageQuery(name, version, request.Payload));
+                return Results.Ok(result);
+            });
+
+            app.MapPost("/clients", async (CreateClientRequest request, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new CreateClientCommand(request.Name));
+                return Results.Created($"/clients/{dto.Id}", dto);
+            });
+
+            app.MapGet("/clients/{id:guid}", async (Guid id, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new GetClientQuery(id));
+                return dto is null ? Results.NotFound() : Results.Ok(dto);
+            });
+
+            app.MapGet("/clients", async (IMediator mediator) =>
+            {
+                var dtos = await mediator.Send(new ListClientsQuery());
+                return Results.Ok(dtos);
+            });
+
+            app.MapPut("/clients/{id:guid}", async (Guid id, UpdateClientRequest request, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new UpdateClientCommand(id, request.Name));
+                return Results.Ok(dto);
+            });
+
+            app.MapDelete("/clients/{id:guid}", async (Guid id, IMediator mediator) =>
+            {
+                await mediator.Send(new DeleteClientCommand(id));
+                return Results.NoContent();
+            });
+
+            app.MapPost("/routes", async (CreateRouteRequest request, IMediator mediator) =>
+            {
+                try
+                {
+                    var dto = await mediator.Send(new CreateRouteCommand(request.ClientId, request.MessageTypeName, request.MessageTypeVersion, request.QueueNames));
+                    return Results.Created($"/routes/{dto.Id}", dto);
+                }
+                catch (ReferencedEntityNotFoundException ex)
+                {
+                    return Results.BadRequest(ex.Message);
+                }
+            });
+
+            app.MapGet("/routes/{id:guid}", async (Guid id, IMediator mediator) =>
+            {
+                var dto = await mediator.Send(new GetRouteQuery(id));
+                return dto is null ? Results.NotFound() : Results.Ok(dto);
+            });
+
+            app.MapGet("/routes", async (IMediator mediator) =>
+            {
+                var dtos = await mediator.Send(new ListRoutesQuery());
+                return Results.Ok(dtos);
+            });
+
+            app.MapPut("/routes/{id:guid}", async (Guid id, UpdateRouteRequest request, IMediator mediator) =>
+            {
+                try
+                {
+                    var dto = await mediator.Send(new UpdateRouteCommand(id, request.ClientId, request.MessageTypeName, request.MessageTypeVersion, request.QueueNames));
+                    return Results.Ok(dto);
+                }
+                catch (ReferencedEntityNotFoundException ex)
+                {
+                    return Results.BadRequest(ex.Message);
+                }
+            });
+
+            app.MapDelete("/routes/{id:guid}", async (Guid id, IMediator mediator) =>
+            {
+                await mediator.Send(new DeleteRouteCommand(id));
+                return Results.NoContent();
+            });
+
+            app.MapGet("/routes/lookup", async (Guid clientId, string messageType, string version, IMediator mediator) =>
+            {
+                var result = await mediator.Send(new LookupRouteQuery(clientId, messageType, version));
+                return Results.Ok(result);
             });
 
             app.Run();

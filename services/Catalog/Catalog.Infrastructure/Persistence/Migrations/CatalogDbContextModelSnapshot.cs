@@ -22,6 +22,24 @@ namespace Catalog.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("AzureSuite.Catalog.Domain.Entities.Client", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("RegisteredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Clients");
+                });
+
             modelBuilder.Entity("AzureSuite.Catalog.Domain.Entities.MessageType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -50,6 +68,53 @@ namespace Catalog.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("MessageTypes");
+                });
+
+            modelBuilder.Entity("AzureSuite.Catalog.Domain.Entities.Route", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("MessageTypeName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("MessageTypeVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.PrimitiveCollection<string>("QueueNames")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MessageTypeName", "MessageTypeVersion");
+
+                    b.HasIndex("ClientId", "MessageTypeName", "MessageTypeVersion");
+
+                    b.ToTable("Routes");
+                });
+
+            modelBuilder.Entity("AzureSuite.Catalog.Domain.Entities.Route", b =>
+                {
+                    b.HasOne("AzureSuite.Catalog.Domain.Entities.Client", null)
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AzureSuite.Catalog.Domain.Entities.MessageType", null)
+                        .WithMany()
+                        .HasForeignKey("MessageTypeName", "MessageTypeVersion")
+                        .HasPrincipalKey("Name", "Version")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
