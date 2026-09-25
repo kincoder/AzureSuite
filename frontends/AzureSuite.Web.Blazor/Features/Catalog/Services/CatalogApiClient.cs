@@ -28,5 +28,35 @@ namespace AzureSuite.Web.Blazor.Features.Catalog.Services
             response.EnsureSuccessStatusCode();
             return (await response.Content.ReadFromJsonAsync<MessageTypeDto>(cancellationToken))!;
         }
+
+        /// <summary>Retrieves all clients registered in the catalog.</summary>
+        public async Task<IReadOnlyList<ClientDto>> GetClientsAsync(CancellationToken cancellationToken)
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<ClientDto>>("/clients", cancellationToken);
+            return result ?? new List<ClientDto>();
+        }
+
+        /// <summary>Registers a new client in the catalog.</summary>
+        public async Task<ClientDto> CreateClientAsync(CreateClientRequest request, CancellationToken cancellationToken)
+        {
+            var response = await _httpClient.PostAsJsonAsync("/clients", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<ClientDto>(cancellationToken))!;
+        }
+
+        /// <summary>Retrieves all routes registered in the catalog.</summary>
+        public async Task<IReadOnlyList<RouteDto>> GetRoutesAsync(CancellationToken cancellationToken)
+        {
+            var result = await _httpClient.GetFromJsonAsync<List<RouteDto>>("/routes", cancellationToken);
+            return result ?? new List<RouteDto>();
+        }
+
+        /// <summary>Registers a new route in the catalog.</summary>
+        public async Task<RouteDto> CreateRouteAsync(CreateRouteRequest request, CancellationToken cancellationToken)
+        {
+            var response = await _httpClient.PostAsJsonAsync("/routes", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<RouteDto>(cancellationToken))!;
+        }
     }
 }

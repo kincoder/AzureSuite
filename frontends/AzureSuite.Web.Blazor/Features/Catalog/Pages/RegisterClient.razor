@@ -1,0 +1,20 @@
+@page "/catalog/clients/register"
+
+<PageHeader Title="Register Client" Eyebrow="Catalog">
+    <Actions>
+        <AppButton Href="/catalog/clients" Variant="AppButtonVariant.Secondary">Back to list</AppButton>
+    </Actions>
+</PageHeader>
+
+<EditForm EditContext="@EditContext" OnValidSubmit="@SubmitAsync">
+    <div class="form-group">
+        <label>Name</label>
+        <InputText @bind-Value="Request.Name" />
+    </div>
+    <AppButton Type="submit">Register</AppButton>
+</EditForm>
+
+@if (ErrorMessage is not null)
+{
+    <ErrorState Message="@ErrorMessage" />
+}

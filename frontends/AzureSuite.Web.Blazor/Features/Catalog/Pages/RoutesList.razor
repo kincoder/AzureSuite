@@ -1,0 +1,35 @@
+@page "/catalog/routes"
+
+<PageHeader Title="Routes" Eyebrow="Catalog">
+    <Actions>
+        <AppButton Href="/catalog/routes/register">Register route</AppButton>
+    </Actions>
+</PageHeader>
+
+@if (Routes is null)
+{
+    <p>Loading...</p>
+}
+else if (Routes.Count == 0)
+{
+    <p class="subtitle">No routes registered yet.</p>
+}
+else
+{
+    <table class="data-table">
+        <thead>
+            <tr><th>Client</th><th>Message type</th><th>Version</th><th>Queues</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var route in Routes)
+            {
+                <tr>
+                    <td>@route.ClientId</td>
+                    <td>@route.MessageTypeName</td>
+                    <td>@route.MessageTypeVersion</td>
+                    <td>@string.Join(", ", route.QueueNames)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
