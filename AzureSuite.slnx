@@ -17,6 +17,11 @@
     <Project Path="services/Ingestion/Ingestion.Infrastructure/Ingestion.Infrastructure.csproj" />
     <Project Path="services/Ingestion/Ingestion.Api/Ingestion.Api.csproj" />
   </Folder>
+  <Folder Name="/services/Processing/">
+    <Project Path="services/Processing/Processing.Application/Processing.Application.csproj" />
+    <Project Path="services/Processing/Processing.Infrastructure/Processing.Infrastructure.csproj" />
+    <Project Path="services/Processing/Processing.Functions/Processing.Functions.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Catalog.Api.Tests/Catalog.Api.Tests.csproj" />
     <Project Path="tests/Catalog.Application.Tests/Catalog.Application.Tests.csproj" />
@@ -26,5 +31,8 @@
     <Project Path="tests/Catalog.Infrastructure.Tests/Catalog.Infrastructure.Tests.csproj" />
     <Project Path="tests/AzureSuite.Web.Blazor.Tests/AzureSuite.Web.Blazor.Tests.csproj" />
     <Project Path="tests/AzureSuite.Observability.Tests/AzureSuite.Observability.Tests.csproj" />
+    <Project Path="tests/Processing.Application.Tests/Processing.Application.Tests.csproj" />
+    <Project Path="tests/Processing.Infrastructure.Tests/Processing.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Processing.Functions.Tests/Processing.Functions.Tests.csproj" />
   </Folder>
 </Solution>
