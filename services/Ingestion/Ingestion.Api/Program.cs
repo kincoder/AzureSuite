@@ -30,7 +30,11 @@ namespace AzureSuite.Ingestion.Api
                     // Managed Identity is only reachable when running on Azure; probing it locally
                     // throws AuthenticationFailedException (not CredentialUnavailableException),
                     // which aborts the credential chain before it reaches AzureCliCredential.
-                    ExcludeManagedIdentityCredential = builder.Environment.IsDevelopment()
+                    // Keyed on IDENTITY_ENDPOINT (set by App Service only when the app has a
+                    // managed identity), not the environment name: the Azure app deliberately runs
+                    // as Development to show the Scalar API reference, and keying on that turned
+                    // Managed Identity off exactly where it's needed.
+                    ExcludeManagedIdentityCredential = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IDENTITY_ENDPOINT"))
                 });
                 return new ServiceBusClient(fullyQualifiedNamespace, credential);
             });
