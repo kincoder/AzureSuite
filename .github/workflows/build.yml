@@ -234,3 +234,79 @@ jobs:
           echo "Health check failed after retries"
           curl -sS -m 15 "${{ vars.INGESTION_API_BASE_URL }}/health/verbose" || true
           exit 1
+
+  deploy-processing-functions:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    name: Deploy Processing.Functions
+    environment: azure-dev
+
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      RESOURCE_GROUP: rg-messaginghub-dev
+      FUNCTION_APP: func-messaginghub-processing-dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        run: dotnet publish services/Processing/Processing.Functions/Processing.Functions.csproj --configuration Release --output ./publish
+
+      # Flex Consumption deploys authenticate with Entra ID (OIDC) only; there is no publish
+      # profile to store as a secret.
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Deploy Infra runs as a separate workflow on the same push. When a merge brings both new
+      # infra and new code, wait for the Function App to exist instead of failing the deploy.
+      - name: Wait for the Function App
+        run: |
+          for i in $(seq 1 40); do
+            if az functionapp show --resource-group "$RESOURCE_GROUP" --name "$FUNCTION_APP" --output none 2>/dev/null; then
+              echo "Function App found"
+              exit 0
+            fi
+            echo "Attempt $i: $FUNCTION_APP not there yet, retrying in 30s..."
+            sleep 30
+          done
+
+          echo "Function App never appeared; has Deploy Infra run?"
+          exit 1
+
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.FUNCTION_APP }}
+          package: ./publish
+
+      # No HTTP endpoint to health-check, so verify the host indexed both triggers instead.
+      - name: Verify functions are registered
+        run: |
+          for i in $(seq 1 10); do
+            names=$(az functionapp function list --resource-group "$RESOURCE_GROUP" --name "$FUNCTION_APP" --query "[].name" --output tsv || echo "")
+            if echo "$names" | grep -q "RecordInboundMessage" && echo "$names" | grep -q "RunHousekeeping"; then
+              echo "Both functions registered:"
+              echo "$names"
+              exit 0
+            fi
+            echo "Attempt $i: functions not indexed yet, retrying in 15s..."
+            sleep 15
+          done
+
+          echo "Expected RecordInboundMessage and RunHousekeeping to be registered; found:"
+          echo "$names"
+          exit 1
