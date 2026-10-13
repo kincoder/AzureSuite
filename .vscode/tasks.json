@@ -19,6 +19,30 @@
             "problemMatcher": "$msCompile"
         },
 
+        // ---- Functions ----
+        {
+            "label": "build: Processing.Functions",
+            "type": "process",
+            "command": "dotnet",
+            "args": ["build", "${workspaceFolder}/services/Processing/Processing.Functions/Processing.Functions.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary"],
+            "group": "build",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            // Runs the Functions host (Azure Functions Core Tools) against the real Service Bus
+            // queue and Cosmos account, using your `az login` identity. Needs Azurite running
+            // for the host's own storage (`npx azurite --location .azurite`), since
+            // local.settings.json points AzureWebJobsStorage at UseDevelopmentStorage=true.
+            // Careful: while this runs it competes with the deployed app for messages.raw.
+            "label": "run: Processing.Functions",
+            "type": "process",
+            "command": "func",
+            "args": ["start"],
+            "options": { "cwd": "${workspaceFolder}/services/Processing/Processing.Functions" },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+
         // ---- Websites ----
         {
             "label": "build: Web.Blazor",

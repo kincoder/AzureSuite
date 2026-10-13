@@ -488,3 +488,9 @@ appsettings.Development.json
 
 # test coverage output
 TestResults/
+
+# Azurite (local Azure Storage emulator for the Functions host)
+.azurite/
+__azurite_db_*.json
+__blobstorage__/
+__queuestorage__/

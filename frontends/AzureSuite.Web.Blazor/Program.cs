@@ -28,8 +28,10 @@ namespace AzureSuite.Web.Blazor
             var ingestionApi = new ApiEndpoint("Ingestion API", BaseAddress(builder.Configuration["IngestionApiBaseUrl"], "https://localhost:7185"));
             builder.Services.AddHttpClient<IngestionApiClient>(client => client.BaseAddress = ingestionApi.BaseAddress);
 
-            builder.Services.AddSingleton(new ApiReferenceLinks(
-                builder.HostEnvironment.IsDevelopment() ? [catalogApi, ingestionApi] : []));
+            // Not gated on this app's environment: Static Web Apps always runs the website as
+            // Production, while the APIs serve Scalar based on their own environment (Development
+            // on Azure too, see infra/modules/*/appservice.bicep).
+            builder.Services.AddSingleton(new ApiReferenceLinks([catalogApi, ingestionApi]));
 
             builder.Services.AddScoped<ClientTelemetryLogger>();
 
