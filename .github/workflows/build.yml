@@ -278,6 +278,13 @@ jobs:
           for i in $(seq 1 40); do
             if az functionapp show --resource-group "$RESOURCE_GROUP" --name "$FUNCTION_APP" --output none 2>/dev/null; then
               echo "Function App found"
+              # Only just created: functions-action looks the app up through a different ARM
+              # query that lags behind for a short while, and reports "doesn't exist" if run
+              # straight away.
+              if [ "$i" -gt 1 ]; then
+                echo "Newly created; giving ARM 90s to catch up"
+                sleep 90
+              fi
               exit 0
             fi
             echo "Attempt $i: $FUNCTION_APP not there yet, retrying in 30s..."

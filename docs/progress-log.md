@@ -44,6 +44,31 @@ to the plan, which still apply when it's picked up:
 `deploy-processing-functions` job in `build.yml` waits for the Function App to exist, deploys
 with OIDC (no publish-profile secret needed on Flex), then checks both functions registered.
 
+**First deploy (2026-10-13) — what broke and what changed:**
+- *Deploy Infra failed:* the CI principal (`gh-actions-azuresuite`, object id
+  `4fc91573-…`) had Contributor on the RG plus User Access Administrator only on the Key
+  Vault and Service Bus namespace, so it couldn't create the role assignment on the new
+  storage account. Granted it **Role Based Access Control Administrator on
+  `rg-messaginghub-dev` with a condition** (set out of band, like its other roles) that
+  limits it to assigning/removing only the five roles the Bicep uses: Key Vault Secrets
+  User/Officer, Service Bus Data Sender/Receiver, Storage Blob Data Owner. A new module that
+  needs a different role must have its id added to that condition. The older per-resource
+  User Access Administrator grants are now redundant (and broader); safe to remove.
+  Cosmos SQL role assignments don't need any of this: they're a `Microsoft.DocumentDB`
+  action, which Contributor already covers.
+- *Processing deploy job failed once:* the Function App appeared mid-run and
+  `functions-action` ran immediately, but its ARM lookup lags behind a just-created app
+  ("doesn't exist"). Re-running the job worked; the wait step now pauses 90s after a newly
+  created app.
+- *Ingestion.Api had never published on Azure:* it excluded Managed Identity when
+  `IsDevelopment()`, and the App Service runs as Development (for the Scalar page), so on
+  Azure it had no usable credential. Now keyed on `IDENTITY_ENDPOINT` (set by the platform
+  only when a managed identity exists) in both Ingestion.Api and Processing.Functions.
+  Side note: Development on Azure also means unhandled errors return the developer exception
+  page (stack trace + request headers) to anonymous callers.
+- Verified the functions directly via Service Bus REST: a well-formed message was recorded
+  as `Received` within 8s; one missing `messageType`/`version` was dead-lettered.
+
 **Seeing it work:** submit a message through the Blazor app (or `POST /messages` on
 Ingestion.Api) → Cosmos → Data Explorer → `messaginghub/LifecycleEvents` shows a `Received`
 document within seconds. To exercise the dead-letter path, send a message without the
