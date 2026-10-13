@@ -45,10 +45,12 @@ namespace AzureSuite.Processing.Functions
 
             // Same credential choice as Ingestion.Api: Managed Identity is only reachable on
             // Azure, and probing it locally fails hard instead of falling through to the
-            // Azure CLI / Visual Studio credentials.
+            // Azure CLI / Visual Studio credentials. IDENTITY_ENDPOINT is set by the platform
+            // only when a managed identity is available, so it's a direct test for that rather
+            // than an inference from the environment name.
             TokenCredential credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
             {
-                ExcludeManagedIdentityCredential = builder.Environment.IsDevelopment()
+                ExcludeManagedIdentityCredential = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IDENTITY_ENDPOINT"))
             });
 
             builder.Services.AddSingleton(TimeProvider.System);
