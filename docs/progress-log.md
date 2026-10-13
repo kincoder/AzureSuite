@@ -3,6 +3,64 @@
 This is a study-case C# solution to hands-on learn most of Azure via IaC (Bicep) + CI/CD
 (GitHub Actions), built around a **financial messaging hub** domain.
 
+## Processing.Functions — first two Azure Functions (2026-10-13)
+
+Branch `feature/processing-functions`. One Function App, `func-messaginghub-processing-dev`
+(isolated worker, .NET 10, **Flex Consumption**), hosting two functions:
+
+- **`RecordInboundMessage`** (Service Bus trigger on `messages.raw`): logs every message
+  Ingestion publishes as a `Received` lifecycle event in Cosmos DB. Settlement is explicit
+  (`AutoCompleteMessages = false`): completed after the Cosmos write; dead-lettered at once
+  (reason `MalformedMessage`) if the `messageType`/`version` properties are missing; left
+  unsettled if anything throws, so Service Bus redelivers (max 10, then it dead-letters it).
+- **`RunHousekeeping`** (timer, `0 0 0 * * *` = midnight **UTC**; Linux apps can't use
+  `WEBSITE_TIME_ZONE`): drains `messages.raw`'s dead-letter queue into the log as
+  `DeadLettered` events, then purges events older than `Housekeeping__RetentionDays` (30).
+
+New infra: `cosmos-messaginghub-dev` (**free tier**, 1000 RU/s shared at database level,
+keys disabled → Entra ID only; database `messaginghub`, container `LifecycleEvents`,
+partition key `/messageId`), storage `stmsghubprocdev` (shared-key access off), Flex plan
+`asp-messaginghub-processing-dev`. Role assignments: Function App → Service Bus Data Receiver
+on the `messages.raw` queue only, Storage Blob Data Owner on its storage, Cosmos Built-in Data
+Contributor; you (`principalId`) also get Cosmos Data Contributor so Data Explorer works.
+Registered the `Microsoft.DocumentDB` resource provider on the subscription (was
+`NotRegistered`). `what-if` before merging: 10 creates, no changes to existing resources.
+
+**Scope vs. the 2026-09-23 plan** (`docs/superpowers/plans/2026-09-23-processing-functions.md`):
+deliberately the simple version — receive and log only, no Catalog validate/route lookup, no
+fan-out, no Ingestion `ClientId` change. The `Processing.*` project layout matches the plan so
+that pipeline can be added inside `RecordInboundMessageCommandHandler` later. Two corrections
+to the plan, which still apply when it's picked up:
+- **Y1 (Linux Consumption) → FC1 (Flex Consumption).** Y1 doesn't run .NET 10 isolated and is
+  being retired. On Flex the runtime goes in `functionAppConfig.runtime`, and the
+  `FUNCTIONS_WORKER_RUNTIME`/`FUNCTIONS_EXTENSION_VERSION` app settings must not be set.
+- **The plan's Bicep had a real dependency cycle** (Cosmos module needed the app's identity,
+  the app needed the Cosmos endpoint). Fixed by putting role assignments in their own modules
+  (`cosmos-data-contributor.bicep`, `processing/servicebus-receiver.bicep`) deployed after both.
+- Also: Linux app settings can't contain `:`, so the plan's `CatalogApi:BaseUrl`-style
+  settings would have been silently unusable; settings here use `__`.
+
+**Deploying:** merge to `master` → `Deploy Infra` creates the resources; the new
+`deploy-processing-functions` job in `build.yml` waits for the Function App to exist, deploys
+with OIDC (no publish-profile secret needed on Flex), then checks both functions registered.
+
+**Seeing it work:** submit a message through the Blazor app (or `POST /messages` on
+Ingestion.Api) → Cosmos → Data Explorer → `messaginghub/LifecycleEvents` shows a `Received`
+document within seconds. To exercise the dead-letter path, send a message without the
+`messageType` property from the portal's Service Bus Explorer → it lands in the DLQ → after
+the next midnight run (or *Code + Test → Run* on `RunHousekeeping` in the portal) it shows up
+as a `DeadLettered` document. Logs: App Insights `traces` where `cloud_RoleName ==
+"func-messaginghub-processing-dev"`.
+
+**Running locally:** `local.settings.json` is gitignored (the Functions convention); create it
+in `services/Processing/Processing.Functions/` with `AzureWebJobsStorage =
+UseDevelopmentStorage=true`, `FUNCTIONS_WORKER_RUNTIME = dotnet-isolated`, and the same
+`ServiceBus__fullyQualifiedNamespace` / `InboundQueueName` / `Cosmos__*` /
+`HousekeepingSchedule` values the Bicep sets. Start Azurite (`npx azurite --location .azurite`), then
+the `run: Processing.Functions` VS Code task (`func start`). Your `az login` identity needs
+Service Bus Data Receiver on the queue to consume locally (only the Function App has it from
+Bicep). While running locally it competes with the deployed app for `messages.raw`.
+
 ## Pivot (2026-09-23): micro-frontend composition abandoned, single Blazor app instead
 
 Built `Shell.Web` on branch `feature/shell-web` to runtime-compose `Catalog.Web` and

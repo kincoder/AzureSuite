@@ -74,6 +74,55 @@ module ingestionServiceBus 'modules/ingestion/servicebus.bicep' = {
   }
 }
 
+module sharedCosmos 'modules/shared/cosmos.bicep' = {
+  name: 'sharedCosmos'
+  params: {
+    location: location
+    accountName: 'cosmos-messaginghub-dev'
+  }
+}
+
+module processingFunctions 'modules/processing/functionapp.bicep' = {
+  name: 'processingFunctions'
+  params: {
+    location: location
+    appServicePlanName: 'asp-messaginghub-processing-dev'
+    functionAppName: 'func-messaginghub-processing-dev'
+    storageAccountName: 'stmsghubprocdev'
+    appInsightsConnectionString: sharedAppInsights.outputs.connectionString
+    serviceBusFullyQualifiedNamespace: ingestionServiceBus.outputs.fullyQualifiedNamespace
+    inboundQueueName: ingestionServiceBus.outputs.queueName
+    cosmosAccountEndpoint: sharedCosmos.outputs.accountEndpoint
+    cosmosDatabaseName: sharedCosmos.outputs.databaseName
+    cosmosContainerName: sharedCosmos.outputs.containerName
+  }
+}
+
+// Role assignments come after both sides exist: the Function App needs the Cosmos endpoint
+// and queue name at creation, and these need the Function App's identity. Keeping them in
+// their own modules is what stops that from being a dependency cycle.
+module processingServiceBusReceiver 'modules/processing/servicebus-receiver.bicep' = {
+  name: 'processingServiceBusReceiver'
+  params: {
+    serviceBusNamespaceName: ingestionServiceBusNamespaceName
+    queueName: ingestionServiceBus.outputs.queueName
+    receiverPrincipalId: processingFunctions.outputs.principalId
+  }
+}
+
+module sharedCosmosDataContributors 'modules/shared/cosmos-data-contributor.bicep' = {
+  name: 'sharedCosmosDataContributors'
+  params: {
+    accountName: sharedCosmos.outputs.accountName
+    // The Function App writes lifecycle events; principalId (you) can browse them in the
+    // portal's Data Explorer, which needs a data-plane role because account keys are disabled.
+    principalIds: [
+      processingFunctions.outputs.principalId
+      principalId
+    ]
+  }
+}
+
 module webStaticWebApp 'modules/web/staticwebapp.bicep' = {
   name: 'webStaticWebApp'
   params: {
@@ -88,3 +137,5 @@ output catalogApiHostname string = catalogApi.outputs.defaultHostname
 output ingestionApiHostname string = ingestionApi.outputs.defaultHostname
 output webStaticWebAppHostname string = webStaticWebApp.outputs.defaultHostname
 output sharedAppInsightsConnectionString string = sharedAppInsights.outputs.connectionString
+output sharedCosmosAccountEndpoint string = sharedCosmos.outputs.accountEndpoint
+output processingFunctionAppName string = processingFunctions.outputs.functionAppName

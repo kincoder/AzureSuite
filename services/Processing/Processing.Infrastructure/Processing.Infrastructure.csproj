@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Processing.Application\Processing.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.63.2" />
+    <!--
+      The Cosmos SDK still needs Newtonsoft.Json present at build time (it fails the build
+      without a direct reference), even though this project serializes with System.Text.Json
+      via CosmosLifecycleEventStore.CreateClientOptions(). Referenced explicitly so the version
+      is a current, patched one rather than whatever a transitive dependency drags in.
+    -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
