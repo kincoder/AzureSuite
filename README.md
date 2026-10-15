@@ -95,9 +95,9 @@ on the project board. Main milestones, in build order:
 
 1. ✅ Catalog — message types, clients, routes, schema validation, route lookup
 2. ✅ Ingestion — accept and publish messages
-3. 🟡 Processing — receive and log is done; validate, route and fan-out are next
-4. ⬜ Delivery — per-subscriber delivery with retries
-5. ⬜ Archive — immutable raw payloads in Blob Storage
-6. ⬜ Monitoring — lifecycle timeline and ops dashboard
-7. ⬜ Angular frontend with Module Federation, as a counterpart to the Blazor app
-8. ⬜ Auth (Entra ID) and production hardening
+3. 🟡 Processing — receive and log is done; validate, route and fan-out are next (#23, #24)
+4. ⬜ Delivery — per-subscriber delivery with retries (#30)
+5. ⬜ Archive — immutable raw payloads in Blob Storage (#29)
+6. ⬜ Monitoring — lifecycle timeline and ops dashboard (#31)
+7. ⬜ Angular frontend with Module Federation, as a counterpart to the Blazor app (#32)
+8. ⬜ Auth (Entra ID) and production hardening (#33, #25, #27)
