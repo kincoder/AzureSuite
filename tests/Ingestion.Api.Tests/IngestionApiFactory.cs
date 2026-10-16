@@ -1,7 +1,9 @@
 using AzureSuite.Ingestion.Api;
 using AzureSuite.Ingestion.Application.Abstractions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -34,6 +36,32 @@ namespace Ingestion.Api.Tests
                 services.RemoveAll<IMessagePublisher>();
                 services.AddSingleton<IMessagePublisher, FakeMessagePublisher>();
             });
+
+            // ConfigureTestServices runs after Program's registrations, so these defaults win over
+            // the JWT bearer scheme Microsoft.Identity.Web registered; that scheme is never invoked.
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddAuthentication()
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+                services.Configure<AuthenticationOptions>(options =>
+                {
+                    options.DefaultScheme = TestAuthHandler.SchemeName;
+                    options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
+                    options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
+                    options.DefaultForbidScheme = TestAuthHandler.SchemeName;
+                });
+            });
+        }
+
+        /// <summary>A client whose requests are authenticated with exactly these roles.</summary>
+        public HttpClient CreateClientWithRoles(params string[] roles)
+        {
+            var client = CreateClient();
+            // HttpClient drops empty header values, which would make the caller anonymous; a lone
+            // comma still means "signed in with no roles" once split.
+            var value = string.Join(',', roles);
+            client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, value.Length == 0 ? "," : value);
+            return client;
         }
     }
 }
