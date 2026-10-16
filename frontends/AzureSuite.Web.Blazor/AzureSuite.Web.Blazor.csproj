@@ -10,12 +10,14 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.12" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Authentication.WebAssembly.Msal" Version="10.0.12" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\services\Catalog\Catalog.Application\Catalog.Application.csproj" />
     <ProjectReference Include="..\..\services\Ingestion\Ingestion.Application\Ingestion.Application.csproj" />
+    <ProjectReference Include="..\..\services\Shared\AzureSuite.Security\AzureSuite.Security.csproj" />
   </ItemGroup>
 
 </Project>
