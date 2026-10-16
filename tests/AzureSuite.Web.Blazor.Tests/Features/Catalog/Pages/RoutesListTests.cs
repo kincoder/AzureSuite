@@ -12,6 +12,13 @@ namespace AzureSuite.Web.Blazor.Tests.Features.Catalog.Pages
 {
     public class RoutesListTests : BunitContext
     {
+        public RoutesListTests()
+        {
+            var auth = AddAuthorization();
+            auth.SetAuthorized("Oscar");
+            auth.SetPolicies(AzureSuite.Security.AppPolicies.CatalogRead, AzureSuite.Security.AppPolicies.CatalogWrite);
+        }
+
         private sealed class FakeCatalogApiHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
         {
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>

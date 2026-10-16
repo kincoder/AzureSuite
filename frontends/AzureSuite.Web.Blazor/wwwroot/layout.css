@@ -56,6 +56,20 @@
     background: var(--color-accent);
 }
 
+/* Signed-in user and sign-out sit at the right end of the bar. */
+.app-nav-user {
+    margin-left: auto;
+    color: var(--color-text);
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+}
+
+button.app-nav-link {
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
 /* ---- Page frame: content grows so the footer sits at the bottom on short pages ---- */
 
 #app {

@@ -1,9 +1,12 @@
 @page "/"
+@attribute [Authorize(Policy = AppPolicies.CatalogRead)]
 @using AzureSuite.Catalog.Application.MessageTypes
 
 <PageHeader Title="Registered Message Types" Eyebrow="Catalog">
     <Actions>
-        <AppButton Href="/catalog/register" Variant="AppButtonVariant.Primary">Register a new message type</AppButton>
+        <AuthorizeView Policy="@AppPolicies.CatalogWrite">
+            <AppButton Href="/catalog/register" Variant="AppButtonVariant.Primary">Register a new message type</AppButton>
+        </AuthorizeView>
     </Actions>
 </PageHeader>
 

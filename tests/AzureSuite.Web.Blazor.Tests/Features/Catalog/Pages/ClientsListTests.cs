@@ -1,3 +1,4 @@
+using AzureSuite.Security;
 using AzureSuite.Web.Blazor.Features.Catalog.Pages;
 using AzureSuite.Web.Blazor.Features.Catalog.Services;
 using Bunit;
@@ -17,9 +18,31 @@ namespace AzureSuite.Web.Blazor.Tests.Features.Catalog.Pages
         [Fact]
         public void RendersHeading()
         {
+            AddAuthorization().SetAuthorized("Oscar");
+
             var cut = Render<ClientsList>();
 
             cut.Find("h1").TextContent.Should().Be("Clients");
+        }
+
+        [Fact]
+        public void ShowsTheRegisterButtonOnlyWithCatalogWrite()
+        {
+            var auth = AddAuthorization();
+            auth.SetAuthorized("Oscar");
+            auth.SetPolicies(AppPolicies.CatalogRead, AppPolicies.CatalogWrite);
+
+            Render<ClientsList>().FindAll("a[href='/catalog/clients/register']").Should().ContainSingle();
+        }
+
+        [Fact]
+        public void HidesTheRegisterButtonForAReader()
+        {
+            var auth = AddAuthorization();
+            auth.SetAuthorized("Oscar");
+            auth.SetPolicies(AppPolicies.CatalogRead);
+
+            Render<ClientsList>().FindAll("a[href='/catalog/clients/register']").Should().BeEmpty();
         }
     }
 }
