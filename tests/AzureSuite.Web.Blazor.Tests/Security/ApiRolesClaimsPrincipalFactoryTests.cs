@@ -41,6 +41,7 @@ namespace AzureSuite.Web.Blazor.Tests.Security
             user.IsInRole("Messages.Submit").Should().BeTrue();
             user.IsInRole("Catalog.Reader").Should().BeFalse();
             provider.LastRequestedScopes.Should().Equal(Api.Scope);
+            user.HasClaim(c => c.Type == ApiRolesClaimsPrincipalFactory.ApiTokenUnavailableClaim).Should().BeFalse();
         }
 
         [Fact]
@@ -52,6 +53,7 @@ namespace AzureSuite.Web.Blazor.Tests.Security
 
             user.Identity!.IsAuthenticated.Should().BeTrue();
             user.IsInRole("Catalog.Admin").Should().BeFalse();
+            user.HasClaim(c => c.Type == ApiRolesClaimsPrincipalFactory.ApiTokenUnavailableClaim).Should().BeTrue();
         }
 
         [Fact]

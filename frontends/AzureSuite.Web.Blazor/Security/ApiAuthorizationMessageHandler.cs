@@ -11,5 +11,21 @@ namespace AzureSuite.Web.Blazor.Security
         {
             ConfigureHandler(authorizedUrls: api.AuthorizedUrls.Select(u => u.ToString()), scopes: [api.Scope]);
         }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await base.SendAsync(request, cancellationToken);
+            }
+            catch (AccessTokenNotAvailableException ex)
+            {
+                // The token can't be renewed silently (e.g. the refresh token expired): send the user
+                // to sign-in here, once, instead of leaving every page to handle it. The exception
+                // still propagates so the calling page stops what it was doing.
+                ex.Redirect();
+                throw;
+            }
+        }
     }
 }

@@ -43,6 +43,9 @@ secrets.
   attaches the token to the two API clients only (`ApiAccessOptions.AuthorizedUrls`).
 - **Every page requires a policy** (`[Authorize(Policy = …)]`). Signed-out users are sent to
   sign-in (`RedirectToLogin`). Signed-in users without the role see "You don't have access".
+  If the API token can't be renewed silently (an expired session), they're offered "Sign in
+  again" instead, and an API call in that state redirects to sign-in
+  (`ApiAuthorizationMessageHandler`).
 - **Why `ApiRolesClaimsPrincipalFactory` exists:** app roles are defined on the *API*
   registration, so they're in the API access token, not in this app's ID token. The factory
   copies the `roles` claim from the API token onto the user, so `AuthorizeView` and

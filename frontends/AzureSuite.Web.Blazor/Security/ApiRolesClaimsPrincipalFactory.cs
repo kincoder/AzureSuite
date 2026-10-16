@@ -9,6 +9,11 @@ namespace AzureSuite.Web.Blazor.Security
     /// [Authorize(Policy)] work, using the same role and policy definitions as the APIs.</summary>
     public sealed class ApiRolesClaimsPrincipalFactory : AccountClaimsPrincipalFactory<RemoteUserAccount>
     {
+        /// <summary>Added when the user is signed in but no API token could be obtained silently
+        /// (e.g. the refresh token expired), so the UI can offer to sign in again instead of
+        /// claiming the user lacks a role.</summary>
+        public const string ApiTokenUnavailableClaim = "api_token_unavailable";
+
         private readonly ApiAccessOptions _api;
 
         public ApiRolesClaimsPrincipalFactory(IAccessTokenProviderAccessor accessor, ApiAccessOptions api)
@@ -32,6 +37,10 @@ namespace AzureSuite.Web.Blazor.Security
                 {
                     identity.AddClaim(new Claim(identity.RoleClaimType, role));
                 }
+            }
+            else
+            {
+                identity.AddClaim(new Claim(ApiTokenUnavailableClaim, "true"));
             }
 
             return user;

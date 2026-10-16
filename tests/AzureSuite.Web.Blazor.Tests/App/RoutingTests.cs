@@ -34,6 +34,24 @@ public class RoutingTests : BunitContext
     }
 
     [Fact]
+    public void ASignedInUserWhoseApiTokenExpired_IsOfferedToSignInAgain()
+    {
+        using var context = new BunitContext();
+        context.Services.AddScoped(_ => new CatalogApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
+        context.Services.AddScoped(_ => new IngestionApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
+        context.Services.AddScoped(_ => new ClientTelemetryLogger(context.JSInterop.JSRuntime));
+        context.Services.AddSingleton(new ApiReferenceLinks([]));
+        var auth = context.AddAuthorization();
+        auth.SetAuthorized("Oscar");
+        auth.SetClaims(new System.Security.Claims.Claim(AzureSuite.Web.Blazor.Security.ApiRolesClaimsPrincipalFactory.ApiTokenUnavailableClaim, "true"));
+
+        var cut = context.Render<AppRoot>();
+
+        cut.Markup.Should().NotContain("You don't have access to this page");
+        cut.Find("main a[href='authentication/login']").TextContent.Should().Contain("Sign in again");
+    }
+
+    [Fact]
     public void ASignedInUserWithoutTheRole_SeesAccessDenied()
     {
         using var context = new BunitContext();
