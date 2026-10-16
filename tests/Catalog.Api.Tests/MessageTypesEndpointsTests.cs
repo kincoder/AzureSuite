@@ -12,7 +12,7 @@ namespace Catalog.Api.Tests
 
         public MessageTypesEndpointsTests(CatalogApiFactory factory)
         {
-            _client = factory.CreateClient();
+            _client = factory.CreateClientWithRoles(AzureSuite.Security.AppRoles.CatalogAdmin);
         }
 
         [Fact]
