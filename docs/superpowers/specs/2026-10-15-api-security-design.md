@@ -190,3 +190,7 @@ endpoint, local sign-in, how a producer gets a token).
 - **Patched crypto packages:** `Microsoft.Identity.Web` 4.16.1 and SqlClient bring
   `System.Security.Cryptography.Pkcs`/`Xml` versions with known vulnerabilities. Both APIs and
   `Catalog.Infrastructure` pin `Pkcs` 10.0.13; the API test projects pin `Xml` 10.0.13.
+- **No `AzureAd:Audience`.** With `requestedAccessTokenVersion: 2`, Entra sets `aud` to the API's
+  client id, so Microsoft.Identity.Web validates against `ClientId`. An `Audience` set to the
+  identifier URI rejected every real token. Found in the final review and pinned by
+  `JwtAudienceTests` in both API test projects.
