@@ -176,3 +176,17 @@ Both `Catalog.Api` and `Ingestion.Api`:
 
 Docs: `docs/infrastructure.md` (identity deployment, limitations), `docs/services/*.md` (auth per
 endpoint, local sign-in, how a producer gets a token).
+
+## Deviations recorded during implementation
+
+- **Identifier URI** is `api://<tenantId>/messaginghub-api`, not `api://<appId>`. A Bicep resource
+  can't reference its own appId.
+- **Every policy also requires an authenticated user.** `RequireRole` alone only checks
+  `IsInRole`, so an unauthenticated identity carrying a role claim would pass.
+- **Microsoft Graph grant:** the web app also gets a tenant-wide `openid profile offline_access`
+  grant, so first sign-in shows no consent prompt.
+- **`deploy-infra.yml`** excludes the folder with a `!infra/identity/**` pattern inside `paths`.
+  GitHub doesn't allow `paths` and `paths-ignore` on the same event.
+- **Patched crypto packages:** `Microsoft.Identity.Web` 4.16.1 and SqlClient bring
+  `System.Security.Cryptography.Pkcs`/`Xml` versions with known vulnerabilities. Both APIs and
+  `Catalog.Infrastructure` pin `Pkcs` 10.0.13; the API test projects pin `Xml` 10.0.13.

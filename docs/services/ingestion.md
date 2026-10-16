@@ -25,9 +25,32 @@ downstream processing stage, which keeps the front door fast and decoupled. See
 
 ## API
 
-| Method | Route | Body | Returns |
-|---|---|---|---|
-| `POST` | `/messages` | `{ messageType, version, payload }` | `{ messageId, messageType, version }` |
+| Method | Route | Body | Returns | Auth |
+|---|---|---|---|---|
+| `POST` | `/messages` | `{ messageType, version, payload }` | `{ messageId, messageType, version }` | `SubmitMessages` (role `Messages.Submit`) |
+| `GET` | `/health`, `/health/verbose` | — | Health report | anonymous |
+
+### Auth
+
+Callers need an Entra ID access token for `api://<tenantId>/messaginghub-api` carrying the
+`Messages.Submit` role. Operators get it by signing in to the web app. Producers use client
+credentials; the role is assigned to their app registration (for testing,
+`MessagingHub-TestProducer`, defined in [infra/identity/main.bicep](../../infra/identity/main.bicep)).
+No token → 401, token without the role → 403.
+
+A producer gets a token like this. The secret comes from `az ad app credential reset` and never
+goes into the repo:
+
+```powershell
+$token = (Invoke-RestMethod -Method Post `
+  -Uri "https://login.microsoftonline.com/46b33134-1b34-42b4-9848-6b40016d2e22/oauth2/v2.0/token" `
+  -Body @{ client_id = "<producerClientId>"; client_secret = "<secret>"; grant_type = "client_credentials";
+           scope = "api://46b33134-1b34-42b4-9848-6b40016d2e22/messaginghub-api/.default" }).access_token
+
+Invoke-RestMethod -Method Post -Uri "https://app-messaginghub-ingestion-dev.azurewebsites.net/messages" `
+  -Headers @{ Authorization = "Bearer $token" } -ContentType "application/json" `
+  -Body '{"messageType":"pacs.008","version":"1.0","payload":"{}"}'
+```
 
 ## Running locally
 

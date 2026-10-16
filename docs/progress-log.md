@@ -3,6 +3,27 @@
 This is a study-case C# solution to hands-on learn most of Azure via IaC (Bicep) + CI/CD
 (GitHub Actions), built around a **financial messaging hub** domain.
 
+## API security — Entra ID app roles (2026-10-16)
+
+Branch `feature/api-security`. Both APIs were anonymous on Azure; now every business endpoint
+needs an Entra ID token with a specific app role. Spec:
+`docs/superpowers/specs/2026-10-15-api-security-design.md`.
+
+- **Roles** (on one `MessagingHub-Api` registration): `Catalog.Reader`, `Catalog.Admin`,
+  `Messages.Submit`. Shared policy names in `services/Shared/AzureSuite.Security`, used by both
+  APIs and the Blazor app.
+- **APIs** deny by default (fallback policy); only `/health*`, OpenAPI and Scalar are anonymous.
+  No token → 401, wrong role → 403.
+- **Blazor** signs in with MSAL. `ApiRolesClaimsPrincipalFactory` copies the roles from the API
+  access token, because app roles defined on the API never appear in the SPA's ID token. The UI
+  hides what the user can't do; the APIs enforce it.
+- **Identity infra** is Graph Bicep in `infra/identity/`, deployed **manually** by the owner.
+  The CI principal has no Graph rights, and `deploy-infra.yml` ignores that folder.
+- **Rollout order:** deploy identity → set the `azure-dev` variables (`AZURE_AD_TENANT_ID`,
+  `AZURE_AD_WEB_CLIENT_ID`, `API_SCOPE`) and the APIs' `AzureAd:ClientId` → merge → verify
+  401/201/403 on Azure. If code reaches `master` before identity exists, both APIs reject
+  everything.
+
 ## Processing.Functions — first two Azure Functions (2026-10-13)
 
 Branch `feature/processing-functions`. One Function App, `func-messaginghub-processing-dev`
