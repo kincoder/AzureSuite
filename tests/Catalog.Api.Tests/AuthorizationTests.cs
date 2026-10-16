@@ -87,6 +87,21 @@ namespace Catalog.Api.Tests
         }
 
         [Fact]
+        public async Task CorsPreflightFromTheWebApp_WithoutToken_IsAllowed()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Options, $"/clients/{Guid.NewGuid()}");
+            request.Headers.Add("Origin", "https://delightful-sky-05bade503.2.azurestaticapps.net");
+            request.Headers.Add("Access-Control-Request-Method", "PUT");
+            request.Headers.Add("Access-Control-Request-Headers", "authorization,content-type");
+
+            var response = await _factory.CreateClient().SendAsync(request);
+
+            response.IsSuccessStatusCode.Should().BeTrue();
+            response.Headers.GetValues("Access-Control-Allow-Origin").Should()
+                .Contain("https://delightful-sky-05bade503.2.azurestaticapps.net");
+        }
+
+        [Fact]
         public async Task Health_Anonymous_IsNotUnauthorized()
         {
             // The catalog-populated check may report Unhealthy (503) on an empty test database;

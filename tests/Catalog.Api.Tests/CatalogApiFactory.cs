@@ -20,6 +20,8 @@ namespace Catalog.Api.Tests
     /// </summary>
     public class CatalogApiFactory : WebApplicationFactory<Program>
     {
+        public const string TestApiClientId = "11111111-2222-3333-4444-555555555555";
+
         public CatalogApiFactory()
         {
             // AzureSuite.Observability's AddAzureSuiteLogging runs synchronously right after
@@ -45,6 +47,9 @@ namespace Catalog.Api.Tests
             Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Name", "EventLog");
             Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Args__source", "Catalog.Api");
             Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Args__manageEventSource", "false");
+
+            // A fixed API client id, so JwtAudienceTests can check real token validation against it.
+            Environment.SetEnvironmentVariable("AzureAd__ClientId", TestApiClientId);
 
             // Program.cs reads builder.Configuration.GetConnectionString("CatalogDb") right
             // after CreateBuilder, in the same "too early for WebApplicationFactory's deferred

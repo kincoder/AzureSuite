@@ -14,6 +14,8 @@ namespace Ingestion.Api.Tests
     /// Bus namespace — mirrors CatalogApiFactory's InMemory-database substitution.</summary>
     public class IngestionApiFactory : WebApplicationFactory<Program>
     {
+        public const string TestApiClientId = "11111111-2222-3333-4444-555555555555";
+
         private sealed class FakeMessagePublisher : IMessagePublisher
         {
             public Task PublishAsync(Guid messageId, string messageType, string version, string payload, CancellationToken cancellationToken)
@@ -27,6 +29,9 @@ namespace Ingestion.Api.Tests
             Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Name", "EventLog");
             Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Args__source", "Ingestion.Api");
             Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Args__manageEventSource", "false");
+
+            // A fixed API client id, so JwtAudienceTests can check real token validation against it.
+            Environment.SetEnvironmentVariable("AzureAd__ClientId", TestApiClientId);
         }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
