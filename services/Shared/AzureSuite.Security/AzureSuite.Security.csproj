@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AzureSuite.Security</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only Microsoft.AspNetCore.Authorization: it runs both server-side and in Blazor
+         WebAssembly, so the APIs and the SPA share these definitions. Never add server-only
+         packages (e.g. Microsoft.Identity.Web) here. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.12" />
+  </ItemGroup>
+
+</Project>
