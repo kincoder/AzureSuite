@@ -76,7 +76,8 @@ az deployment group create -g rg-messaginghub-dev `
 
 **Limitations:**
 - Graph Bicep can't create client secrets. Create the producer's secret once with
-  `az ad app credential reset --id <producerClientId>` and keep it in a password manager.
+  `az ad app credential reset` and store it straight in Key Vault as
+  `testproducer-client-secret` (in `kv-msghub-catalog-dev`), so it never appears on screen.
 - There's no `what-if` for Graph resources.
 - A role assignment right after its service principal is created can fail on replication
   delay. Re-running the deployment fixes it.
