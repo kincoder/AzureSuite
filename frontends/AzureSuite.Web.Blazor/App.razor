@@ -1,6 +1,25 @@
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="typeof(MainLayout)" />
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="typeof(MainLayout)">
+            <NotAuthorized>
+                @if (context.User.Identity?.IsAuthenticated != true)
+                {
+                    <RedirectToLogin />
+                }
+                else if (context.User.HasClaim(c => c.Type == ApiRolesClaimsPrincipalFactory.ApiTokenUnavailableClaim))
+                {
+                    <ErrorState Message="Your session needs refreshing before your access can be checked." />
+                    <AppButton Href="authentication/login">Sign in again</AppButton>
+                }
+                else
+                {
+                    <ErrorState Message="You don't have access to this page. Ask an administrator for the role it needs." />
+                }
+            </NotAuthorized>
+            <Authorizing>
+                <p>Signing in...</p>
+            </Authorizing>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>

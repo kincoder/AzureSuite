@@ -1,7 +1,9 @@
 using AzureSuite.Catalog.Api;
 using AzureSuite.Catalog.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,8 @@ namespace Catalog.Api.Tests
     /// </summary>
     public class CatalogApiFactory : WebApplicationFactory<Program>
     {
+        public const string TestApiClientId = "11111111-2222-3333-4444-555555555555";
+
         public CatalogApiFactory()
         {
             // AzureSuite.Observability's AddAzureSuiteLogging runs synchronously right after
@@ -43,6 +47,9 @@ namespace Catalog.Api.Tests
             Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Name", "EventLog");
             Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Args__source", "Catalog.Api");
             Environment.SetEnvironmentVariable("Serilog__WriteTo__0__Args__manageEventSource", "false");
+
+            // A fixed API client id, so JwtAudienceTests can check real token validation against it.
+            Environment.SetEnvironmentVariable("AzureAd__ClientId", TestApiClientId);
 
             // Program.cs reads builder.Configuration.GetConnectionString("CatalogDb") right
             // after CreateBuilder, in the same "too early for WebApplicationFactory's deferred
@@ -76,6 +83,32 @@ namespace Catalog.Api.Tests
                 var databaseName = Guid.NewGuid().ToString();
                 services.AddDbContext<CatalogDbContext>(options => options.UseInMemoryDatabase(databaseName));
             });
+
+            // ConfigureTestServices runs after Program's registrations, so these defaults win over
+            // the JWT bearer scheme Microsoft.Identity.Web registered; that scheme is never invoked.
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddAuthentication()
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+                services.Configure<AuthenticationOptions>(options =>
+                {
+                    options.DefaultScheme = TestAuthHandler.SchemeName;
+                    options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
+                    options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
+                    options.DefaultForbidScheme = TestAuthHandler.SchemeName;
+                });
+            });
+        }
+
+        /// <summary>A client whose requests are authenticated with exactly these roles.</summary>
+        public HttpClient CreateClientWithRoles(params string[] roles)
+        {
+            var client = CreateClient();
+            // HttpClient drops empty header values, which would make the caller anonymous; a lone
+            // comma still means "signed in with no roles" once split.
+            var value = string.Join(',', roles);
+            client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, value.Length == 0 ? "," : value);
+            return client;
         }
     }
 }

@@ -13,6 +13,10 @@ public class MessageTypesListRenderTests : BunitContext
     {
         Services.AddScoped(_ => new CatalogApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
         Services.AddScoped(_ => new ClientTelemetryLogger(JSInterop.JSRuntime));
+
+        var auth = AddAuthorization();
+        auth.SetAuthorized("Oscar");
+        auth.SetPolicies(AzureSuite.Security.AppPolicies.CatalogRead, AzureSuite.Security.AppPolicies.CatalogWrite);
     }
 
     [Fact]

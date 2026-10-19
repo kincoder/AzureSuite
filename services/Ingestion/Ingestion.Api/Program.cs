@@ -4,9 +4,12 @@ using AzureSuite.Ingestion.Application.Messages.Commands.IngestMessage;
 using AzureSuite.Ingestion.Infrastructure.Messaging;
 using AzureSuite.Observability;
 using AzureSuite.Observability.HealthChecks;
+using AzureSuite.Security;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Identity.Web;
 using Scalar.AspNetCore;
 
 namespace AzureSuite.Ingestion.Api
@@ -47,6 +50,15 @@ namespace AzureSuite.Ingestion.Api
 
             builder.Services.AddHealthChecks();
 
+            builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddAzureSuitePolicies();
+                // Deny by default: any endpoint that doesn't name a policy or AllowAnonymous
+                // still needs a valid token.
+                options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+            });
+
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
@@ -63,11 +75,13 @@ namespace AzureSuite.Ingestion.Api
             var app = builder.Build();
 
             app.UseCors();
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
-                app.MapScalarApiReference();
+                app.MapOpenApi().AllowAnonymous();
+                app.MapScalarApiReference().AllowAnonymous();
             }
 
             app.UseHttpsRedirection();
@@ -90,7 +104,7 @@ namespace AzureSuite.Ingestion.Api
 
                 var dto = await mediator.Send(new IngestMessageCommand(request.MessageType, request.Version, request.Payload));
                 return Results.Created($"/messages/{dto.MessageId}", dto);
-            });
+            }).RequireAuthorization(AppPolicies.SubmitMessages);
 
             app.Run();
         }

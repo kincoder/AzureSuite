@@ -1,3 +1,4 @@
+using AzureSuite.Security;
 using AzureSuite.Web.Blazor.Configuration;
 using AzureSuite.Web.Blazor.Features.Catalog.Services;
 using AzureSuite.Web.Blazor.Features.Ingestion.Services;
@@ -26,6 +27,44 @@ public class RoutingTests : BunitContext
         // surfaces if the async HTTP failure resolves before the test's assertion runs,
         // which is exactly why this passed locally but failed on CI.
         JSInterop.SetupVoid("logException", _ => true);
+
+        var auth = AddAuthorization();
+        auth.SetAuthorized("Oscar");
+        auth.SetPolicies(AppPolicies.CatalogRead, AppPolicies.CatalogWrite, AppPolicies.SubmitMessages);
+    }
+
+    [Fact]
+    public void ASignedInUserWhoseApiTokenExpired_IsOfferedToSignInAgain()
+    {
+        using var context = new BunitContext();
+        context.Services.AddScoped(_ => new CatalogApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
+        context.Services.AddScoped(_ => new IngestionApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
+        context.Services.AddScoped(_ => new ClientTelemetryLogger(context.JSInterop.JSRuntime));
+        context.Services.AddSingleton(new ApiReferenceLinks([]));
+        var auth = context.AddAuthorization();
+        auth.SetAuthorized("Oscar");
+        auth.SetClaims(new System.Security.Claims.Claim(AzureSuite.Web.Blazor.Security.ApiRolesClaimsPrincipalFactory.ApiTokenUnavailableClaim, "true"));
+
+        var cut = context.Render<AppRoot>();
+
+        cut.Markup.Should().NotContain("You don't have access to this page");
+        cut.Find("main a[href='authentication/login']").TextContent.Should().Contain("Sign in again");
+    }
+
+    [Fact]
+    public void ASignedInUserWithoutTheRole_SeesAccessDenied()
+    {
+        using var context = new BunitContext();
+        context.Services.AddScoped(_ => new CatalogApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
+        context.Services.AddScoped(_ => new IngestionApiClient(new HttpClient { BaseAddress = new Uri("https://localhost/") }));
+        context.Services.AddScoped(_ => new ClientTelemetryLogger(context.JSInterop.JSRuntime));
+        context.Services.AddSingleton(new ApiReferenceLinks([]));
+        context.AddAuthorization().SetAuthorized("Nobody");
+
+        var cut = context.Render<AppRoot>();
+
+        cut.Markup.Should().Contain("You don't have access to this page");
+        cut.Find(".app-nav").Should().NotBeNull();
     }
 
     [Fact]

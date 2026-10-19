@@ -49,6 +49,9 @@ jobs:
             -e "s|__CATALOG_API_BASE_URL__|${{ vars.CATALOG_API_BASE_URL }}|" \
             -e "s|__INGESTION_API_BASE_URL__|${{ vars.INGESTION_API_BASE_URL }}|" \
             -e "s|__APPLICATION_INSIGHTS_CONNECTION_STRING__|${{ vars.APPLICATION_INSIGHTS_CONNECTION_STRING }}|" \
+            -e "s|__AZURE_AD_TENANT_ID__|${{ vars.AZURE_AD_TENANT_ID }}|" \
+            -e "s|__AZURE_AD_WEB_CLIENT_ID__|${{ vars.AZURE_AD_WEB_CLIENT_ID }}|" \
+            -e "s|__API_SCOPE__|${{ vars.API_SCOPE }}|" \
             frontends/AzureSuite.Web.Blazor/wwwroot/appsettings.json
 
       - name: Deploy to Azure Static Web Apps
