@@ -1,8 +1,11 @@
 @page "/catalog/clients"
+@attribute [Authorize(Policy = AppPolicies.CatalogRead)]
 
 <PageHeader Title="Clients" Eyebrow="Catalog">
     <Actions>
-        <AppButton Href="/catalog/clients/register">Register client</AppButton>
+        <AuthorizeView Policy="@AppPolicies.CatalogWrite">
+            <AppButton Href="/catalog/clients/register">Register client</AppButton>
+        </AuthorizeView>
     </Actions>
 </PageHeader>
 

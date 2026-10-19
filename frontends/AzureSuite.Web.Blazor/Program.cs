@@ -1,8 +1,11 @@
+using AzureSuite.Security;
 using AzureSuite.Web.Blazor.Configuration;
 using AzureSuite.Web.Blazor.Features.Catalog.Services;
 using AzureSuite.Web.Blazor.Features.Ingestion.Services;
+using AzureSuite.Web.Blazor.Security;
 using AzureSuite.Web.Blazor.UI;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
 
@@ -23,10 +26,29 @@ namespace AzureSuite.Web.Blazor
             // and are both constructor-injected with the unqualified `HttpClient` type --
             // the second registration would silently win for both.
             var catalogApi = new ApiEndpoint("Catalog API", BaseAddress(builder.Configuration["CatalogApiBaseUrl"], "https://localhost:7184"));
-            builder.Services.AddHttpClient<CatalogApiClient>(client => client.BaseAddress = catalogApi.BaseAddress);
-
             var ingestionApi = new ApiEndpoint("Ingestion API", BaseAddress(builder.Configuration["IngestionApiBaseUrl"], "https://localhost:7185"));
-            builder.Services.AddHttpClient<IngestionApiClient>(client => client.BaseAddress = ingestionApi.BaseAddress);
+
+            var apiAccess = new ApiAccessOptions(
+                builder.Configuration["ApiScope"] ?? string.Empty,
+                [catalogApi.BaseAddress, ingestionApi.BaseAddress]);
+            builder.Services.AddSingleton(apiAccess);
+            builder.Services.AddScoped<ApiAuthorizationMessageHandler>();
+
+            builder.Services.AddMsalAuthentication<RemoteAuthenticationState, RemoteUserAccount>(options =>
+                {
+                    builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
+                    options.ProviderOptions.DefaultAccessTokenScopes.Add(apiAccess.Scope);
+                    options.ProviderOptions.LoginMode = "redirect";
+                    options.UserOptions.NameClaim = "name";
+                })
+                .AddAccountClaimsPrincipalFactory<RemoteAuthenticationState, RemoteUserAccount, ApiRolesClaimsPrincipalFactory>();
+            builder.Services.AddAuthorizationCore(options => options.AddAzureSuitePolicies());
+            builder.Services.AddCascadingAuthenticationState();
+
+            builder.Services.AddHttpClient<CatalogApiClient>(client => client.BaseAddress = catalogApi.BaseAddress)
+                .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
+            builder.Services.AddHttpClient<IngestionApiClient>(client => client.BaseAddress = ingestionApi.BaseAddress)
+                .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
 
             // Not gated on this app's environment: Static Web Apps always runs the website as
             // Production, while the APIs serve Scalar based on their own environment (Development

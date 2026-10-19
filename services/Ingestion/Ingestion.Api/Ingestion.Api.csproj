@@ -11,6 +11,10 @@
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
     <PackageReference Include="MediatR" Version="14.2.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="4.16.1" />
+    <!-- Microsoft.Identity.Web 4.16.1 brings Pkcs 10.0.10, which has known vulnerabilities;
+         pinned to the patched version until it references that itself. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.17.3" />
   </ItemGroup>
@@ -19,6 +23,7 @@
     <ProjectReference Include="..\Ingestion.Application\Ingestion.Application.csproj" />
     <ProjectReference Include="..\Ingestion.Infrastructure\Ingestion.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Shared\AzureSuite.Observability\AzureSuite.Observability.csproj" />
+    <ProjectReference Include="..\..\Shared\AzureSuite.Security\AzureSuite.Security.csproj" />
   </ItemGroup>
 
 </Project>

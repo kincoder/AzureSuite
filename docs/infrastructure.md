@@ -52,3 +52,39 @@ Insights connection string) lives in the `azure-dev` GitHub environment.
   Sender/Receiver, and Storage Blob Data Owner. If a new module assigns any other role, add
   that role's id to the condition first, or Deploy Infra fails.
 - Key Vault Secrets User on `kv-msghub-catalog-dev`, so `az.getSecret` can resolve.
+
+## Identity (Entra ID): deployed manually
+
+[infra/identity/main.bicep](../infra/identity/main.bicep) uses the **Microsoft Graph Bicep
+extension** to define the app registrations and roles that secure the APIs. It isn't referenced
+by `main.bicep`, and `deploy-infra.yml` ignores `infra/identity/**`. The owner deploys it with
+their own `az login`, so the CI principal needs no Microsoft Graph permissions.
+
+```powershell
+az deployment group create -g rg-messaginghub-dev `
+  -f infra/identity/main.bicep -p infra/identity/identity.dev.bicepparam `
+  --query properties.outputs
+```
+
+| Creates | Purpose |
+|---|---|
+| `MessagingHub-Api` | One API registration for Catalog and Ingestion: app roles `Catalog.Reader`, `Catalog.Admin`, `Messages.Submit`; scope `access_as_user`; identifier URI `api://<tenantId>/messaginghub-api` |
+| `MessagingHub-Web` | The Blazor SPA (public client), redirect URIs for the Static Web App and localhost |
+| `MessagingHub-TestProducer` | A stand-in producer that holds `Messages.Submit` |
+| Consent grants | Web → API `access_as_user` and Graph `openid profile offline_access`, tenant-wide, so there's no consent prompt |
+| Role assignments | The owner gets every role; the test producer gets `Messages.Submit` |
+
+**Limitations:**
+- Graph Bicep can't create client secrets. Create the producer's secret once with
+  `az ad app credential reset` and store it straight in Key Vault as
+  `testproducer-client-secret` (in `kv-msghub-catalog-dev`), so it never appears on screen.
+- There's no `what-if` for Graph resources.
+- A role assignment right after its service principal is created can fail on replication
+  delay. Re-running the deployment fixes it.
+- Edits made in the Portal aren't detected. Re-running the file restores the declared state.
+
+**Adding a role:**
+1. Add a new fixed GUID to `roleIds` and an `appRoles` entry in `main.bicep`.
+2. Add a constant to `AppRoles` and a policy to `AddAzureSuitePolicies` in
+   `services/Shared/AzureSuite.Security`.
+3. Use the policy on the endpoints and pages that need it, then redeploy identity.

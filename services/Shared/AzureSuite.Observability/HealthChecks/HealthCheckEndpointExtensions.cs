@@ -15,16 +15,20 @@ namespace AzureSuite.Observability.HealthChecks;
 ///
 /// Bypasses <c>MapHealthChecks</c> deliberately: its <c>Predicate</c> is fixed at startup,
 /// so it can't filter per-request from a query string. Calling <see cref="HealthCheckService"/>
-/// directly gives us that.</summary>
+/// directly gives us that.
+///
+/// Both endpoints are anonymous: services deny by default, and uptime probes carry no token.</summary>
 public static class HealthCheckEndpointExtensions
 {
     public static IEndpointRouteBuilder MapAzureSuiteHealthChecks(this IEndpointRouteBuilder endpoints, string basePath = "/health")
     {
         endpoints.MapGet(basePath, (HttpContext context, HealthCheckService healthCheckService) =>
-            HandleAsync(context, healthCheckService, verbose: false));
+            HandleAsync(context, healthCheckService, verbose: false))
+            .AllowAnonymous();
 
         endpoints.MapGet($"{basePath}/verbose", (HttpContext context, HealthCheckService healthCheckService) =>
-            HandleAsync(context, healthCheckService, verbose: true));
+            HandleAsync(context, healthCheckService, verbose: true))
+            .AllowAnonymous();
 
         return endpoints;
     }

@@ -5,6 +5,7 @@
   <Folder Name="/services/" />
   <Folder Name="/services/Shared/">
     <Project Path="services/Shared/AzureSuite.Observability/AzureSuite.Observability.csproj" />
+    <Project Path="services/Shared/AzureSuite.Security/AzureSuite.Security.csproj" />
   </Folder>
   <Folder Name="/services/Catalog/">
     <Project Path="services/Catalog/Catalog.Api/Catalog.Api.csproj" />
@@ -34,5 +35,6 @@
     <Project Path="tests/Processing.Application.Tests/Processing.Application.Tests.csproj" />
     <Project Path="tests/Processing.Infrastructure.Tests/Processing.Infrastructure.Tests.csproj" />
     <Project Path="tests/Processing.Functions.Tests/Processing.Functions.Tests.csproj" />
+    <Project Path="tests/AzureSuite.Security.Tests/AzureSuite.Security.Tests.csproj" />
   </Folder>
 </Solution>

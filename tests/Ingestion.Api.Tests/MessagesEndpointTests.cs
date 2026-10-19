@@ -12,7 +12,7 @@ namespace Ingestion.Api.Tests
 
         public MessagesEndpointTests(IngestionApiFactory factory)
         {
-            _client = factory.CreateClient();
+            _client = factory.CreateClientWithRoles(AzureSuite.Security.AppRoles.MessagesSubmit);
         }
 
         [Fact]

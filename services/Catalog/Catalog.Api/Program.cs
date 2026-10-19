@@ -22,8 +22,11 @@ using AzureSuite.Catalog.Infrastructure.Persistence;
 using AzureSuite.Catalog.Infrastructure.Persistence.HealthChecks;
 using AzureSuite.Catalog.Infrastructure.Persistence.Repositories;
 using AzureSuite.Observability.HealthChecks;
+using AzureSuite.Security;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
 using Scalar.AspNetCore;
 
 namespace AzureSuite.Catalog.Api
@@ -45,6 +48,15 @@ namespace AzureSuite.Catalog.Api
             builder.Services.AddHealthChecks()
                 .AddDbContextCheck<CatalogDbContext>("sql", tags: ["db"])
                 .AddCheck<MessageTypeCatalogPopulatedHealthCheck>("catalog-populated", tags: ["data"]);
+
+            builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddAzureSuitePolicies();
+                // Deny by default: any endpoint that doesn't name a policy or AllowAnonymous
+                // still needs a valid token.
+                options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+            });
 
             builder.Services.AddCors(options =>
             {
@@ -73,6 +85,8 @@ namespace AzureSuite.Catalog.Api
             var app = builder.Build();
 
             app.UseCors();
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             if (usingInMemory)
             {
@@ -83,69 +97,73 @@ namespace AzureSuite.Catalog.Api
 
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
-                app.MapScalarApiReference();
+                app.MapOpenApi().AllowAnonymous();
+                app.MapScalarApiReference().AllowAnonymous();
             }
 
             app.UseHttpsRedirection();
 
             app.MapAzureSuiteHealthChecks();
 
-            app.MapPost("/message-types", async (RegisterMessageTypeRequest request, IMediator mediator) =>
+            // Every Catalog endpoint is either a read (Reader or Admin) or a write (Admin only).
+            var reads = app.MapGroup(string.Empty).RequireAuthorization(AppPolicies.CatalogRead);
+            var writes = app.MapGroup(string.Empty).RequireAuthorization(AppPolicies.CatalogWrite);
+
+            writes.MapPost("/message-types", async (RegisterMessageTypeRequest request, IMediator mediator) =>
             {
                 var dto = await mediator.Send(new RegisterMessageTypeCommand(request.Name, request.Version, request.SchemaDefinition));
                 return Results.Created($"/message-types/{dto.Name}/{dto.Version}", dto);
             });
 
-            app.MapGet("/message-types/{name}/{version}", async (string name, string version, IMediator mediator) =>
+            reads.MapGet("/message-types/{name}/{version}", async (string name, string version, IMediator mediator) =>
             {
                 var dto = await mediator.Send(new GetMessageTypeQuery(name, version));
                 return dto is null ? Results.NotFound() : Results.Ok(dto);
             });
 
-            app.MapGet("/message-types", async (IMediator mediator) =>
+            reads.MapGet("/message-types", async (IMediator mediator) =>
             {
                 var dtos = await mediator.Send(new ListMessageTypesQuery());
                 return Results.Ok(dtos);
             });
 
-            app.MapPost("/message-types/{name}/{version}/validate", async (string name, string version, ValidateMessageRequest request, IMediator mediator) =>
+            reads.MapPost("/message-types/{name}/{version}/validate", async (string name, string version, ValidateMessageRequest request, IMediator mediator) =>
             {
                 var result = await mediator.Send(new ValidateMessageQuery(name, version, request.Payload));
                 return Results.Ok(result);
             });
 
-            app.MapPost("/clients", async (CreateClientRequest request, IMediator mediator) =>
+            writes.MapPost("/clients", async (CreateClientRequest request, IMediator mediator) =>
             {
                 var dto = await mediator.Send(new CreateClientCommand(request.Name));
                 return Results.Created($"/clients/{dto.Id}", dto);
             });
 
-            app.MapGet("/clients/{id:guid}", async (Guid id, IMediator mediator) =>
+            reads.MapGet("/clients/{id:guid}", async (Guid id, IMediator mediator) =>
             {
                 var dto = await mediator.Send(new GetClientQuery(id));
                 return dto is null ? Results.NotFound() : Results.Ok(dto);
             });
 
-            app.MapGet("/clients", async (IMediator mediator) =>
+            reads.MapGet("/clients", async (IMediator mediator) =>
             {
                 var dtos = await mediator.Send(new ListClientsQuery());
                 return Results.Ok(dtos);
             });
 
-            app.MapPut("/clients/{id:guid}", async (Guid id, UpdateClientRequest request, IMediator mediator) =>
+            writes.MapPut("/clients/{id:guid}", async (Guid id, UpdateClientRequest request, IMediator mediator) =>
             {
                 var dto = await mediator.Send(new UpdateClientCommand(id, request.Name));
                 return Results.Ok(dto);
             });
 
-            app.MapDelete("/clients/{id:guid}", async (Guid id, IMediator mediator) =>
+            writes.MapDelete("/clients/{id:guid}", async (Guid id, IMediator mediator) =>
             {
                 await mediator.Send(new DeleteClientCommand(id));
                 return Results.NoContent();
             });
 
-            app.MapPost("/routes", async (CreateRouteRequest request, IMediator mediator) =>
+            writes.MapPost("/routes", async (CreateRouteRequest request, IMediator mediator) =>
             {
                 try
                 {
@@ -158,19 +176,19 @@ namespace AzureSuite.Catalog.Api
                 }
             });
 
-            app.MapGet("/routes/{id:guid}", async (Guid id, IMediator mediator) =>
+            reads.MapGet("/routes/{id:guid}", async (Guid id, IMediator mediator) =>
             {
                 var dto = await mediator.Send(new GetRouteQuery(id));
                 return dto is null ? Results.NotFound() : Results.Ok(dto);
             });
 
-            app.MapGet("/routes", async (IMediator mediator) =>
+            reads.MapGet("/routes", async (IMediator mediator) =>
             {
                 var dtos = await mediator.Send(new ListRoutesQuery());
                 return Results.Ok(dtos);
             });
 
-            app.MapPut("/routes/{id:guid}", async (Guid id, UpdateRouteRequest request, IMediator mediator) =>
+            writes.MapPut("/routes/{id:guid}", async (Guid id, UpdateRouteRequest request, IMediator mediator) =>
             {
                 try
                 {
@@ -183,13 +201,13 @@ namespace AzureSuite.Catalog.Api
                 }
             });
 
-            app.MapDelete("/routes/{id:guid}", async (Guid id, IMediator mediator) =>
+            writes.MapDelete("/routes/{id:guid}", async (Guid id, IMediator mediator) =>
             {
                 await mediator.Send(new DeleteRouteCommand(id));
                 return Results.NoContent();
             });
 
-            app.MapGet("/routes/lookup", async (Guid clientId, string messageType, string version, IMediator mediator) =>
+            reads.MapGet("/routes/lookup", async (Guid clientId, string messageType, string version, IMediator mediator) =>
             {
                 var result = await mediator.Send(new LookupRouteQuery(clientId, messageType, version));
                 return Results.Ok(result);

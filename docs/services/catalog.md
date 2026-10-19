@@ -28,19 +28,28 @@ Catalog is static data. It never changes by itself, only through these endpoints
 
 ## API
 
-| Method | Route | Purpose |
-|---|---|---|
-| `POST` / `GET` | `/message-types` | Register / list message types |
-| `GET` | `/message-types/{name}/{version}` | Get one type |
-| `POST` | `/message-types/{name}/{version}/validate` | Check a payload against the type's JSON Schema → `{ isValid, errors[] }` |
-| `POST` / `GET` | `/clients` | Create / list clients |
-| `GET` / `PUT` / `DELETE` | `/clients/{id}` | Get / update / delete a client |
-| `POST` / `GET` | `/routes` | Create / list routes |
-| `GET` / `PUT` / `DELETE` | `/routes/{id}` | Get / update / delete a route |
-| `GET` | `/routes/lookup?clientId=&messageType=&version=` | → `{ queueNames[] }`; an empty list means the client isn't authorized |
+| Method | Route | Purpose | Auth |
+|---|---|---|---|
+| `POST` / `GET` | `/message-types` | Register / list message types | POST `CatalogWrite`, GET `CatalogRead` |
+| `GET` | `/message-types/{name}/{version}` | Get one type | `CatalogRead` |
+| `POST` | `/message-types/{name}/{version}/validate` | Check a payload against the type's JSON Schema → `{ isValid, errors[] }` | `CatalogRead` |
+| `POST` / `GET` | `/clients` | Create / list clients | POST `CatalogWrite`, GET `CatalogRead` |
+| `GET` / `PUT` / `DELETE` | `/clients/{id}` | Get / update / delete a client | GET `CatalogRead`, PUT/DELETE `CatalogWrite` |
+| `POST` / `GET` | `/routes` | Create / list routes | POST `CatalogWrite`, GET `CatalogRead` |
+| `GET` / `PUT` / `DELETE` | `/routes/{id}` | Get / update / delete a route | GET `CatalogRead`, PUT/DELETE `CatalogWrite` |
+| `GET` | `/routes/lookup?clientId=&messageType=&version=` | → `{ queueNames[] }`; an empty list means the client isn't authorized | `CatalogRead` |
+| `GET` | `/health`, `/health/verbose` | Health checks | anonymous |
 
 `validate` and `routes/lookup` are kept separate on purpose. One checks the payload's shape,
 the other checks the client's authorization. Callers can use either one alone.
+
+### Auth
+
+Every endpoint needs an Entra ID access token for `api://<tenantId>/messaginghub-api`. Anything
+not listed with a policy is still denied to anonymous callers by default. `CatalogRead` accepts the
+`Catalog.Reader` or `Catalog.Admin` role; `CatalogWrite` needs `Catalog.Admin`. No token → 401,
+token without the role → 403. Policies live in `services/Shared/AzureSuite.Security`; roles are
+defined in [infra/identity/main.bicep](../../infra/identity/main.bicep).
 
 ## Running locally
 
