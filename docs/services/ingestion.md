@@ -21,14 +21,15 @@ downstream processing stage, which keeps the front door fast and decoupled. See
 |---|---|
 | `Ingestion.Application` | `IngestMessageCommand` and its handler: creates a v7 GUID `MessageId` and publishes through `IMessagePublisher` |
 | `Ingestion.Infrastructure` | `ServiceBusMessagePublisher`: sends the payload as the body, with `messageType` and `version` as application properties |
-| `Ingestion.Api` | `POST /messages`, Scalar at `/scalar/v1`, health at `/health` |
+| `Ingestion.Api` | `POST /messages`, Scalar at `/scalar/v1` (local Development only), health at `/health` |
 
 ## API
 
 | Method | Route | Body | Returns | Auth |
 |---|---|---|---|---|
 | `POST` | `/messages` | `{ messageType, version, payload }` | `{ messageId, messageType, version }` | `SubmitMessages` (role `Messages.Submit`) |
-| `GET` | `/health`, `/health/verbose` | — | Health report | anonymous |
+| `GET` | `/health` | — | Liveness, runs no checks | anonymous |
+| `GET` | `/health/verbose` | — | Each check's detail | any signed-in caller |
 
 ### Auth
 
@@ -68,5 +69,3 @@ deploy. On Azure the app uses its system-assigned managed identity, detected thr
 ## Known gaps
 
 - `ClientId` isn't in the contract yet. Processing's route lookup will need it.
-- The app runs as `Development` on Azure so Scalar is reachable. As a side effect, unhandled
-  errors return the developer exception page.

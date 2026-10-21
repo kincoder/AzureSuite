@@ -34,7 +34,6 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     name: Deploy AzureSuite.Web.Blazor
-    environment: azure-dev
 
     permissions:
       contents: read
@@ -101,7 +100,6 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     name: Deploy Catalog.Api
-    environment: azure-dev
 
     permissions:
       id-token: write
@@ -110,7 +108,7 @@ jobs:
     env:
       RESOURCE_GROUP: rg-messaginghub-dev
       SQL_SERVER: sql-messaginghub-catalog-dev
-      KEY_VAULT: kv-msghub-catalog-dev
+      WEB_APP: app-messaginghub-catalog-dev
       FIREWALL_RULE: gh-actions-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
@@ -155,11 +153,11 @@ jobs:
             --resource-group "$RESOURCE_GROUP" --server "$SQL_SERVER" --name "$FIREWALL_RULE" \
             --start-ip-address "$runner_ip" --end-ip-address "$runner_ip" --output none
 
+      # The server is Entra-only: the bundle signs in as this workflow's federated identity
+      # (picked up from the az login above), a contained user with db_ddladmin.
       - name: Apply database migrations
         run: |
-          connection_string=$(az keyvault secret show --vault-name "$KEY_VAULT" --name catalog-db-connection-string --query value --output tsv)
-          echo "::add-mask::$connection_string"
-          ConnectionStrings__CatalogDb="$connection_string" ./efbundle
+          ConnectionStrings__CatalogDb="Server=tcp:$SQL_SERVER.database.windows.net,1433;Initial Catalog=catalog;Authentication=Active Directory Default;Encrypt=true;Connect Timeout=120;" ./efbundle
 
       - name: Close SQL firewall
         if: always() && steps.firewall.outcome == 'success'
@@ -170,14 +168,22 @@ jobs:
       - name: Publish
         run: dotnet publish services/Catalog/Catalog.Api/Catalog.Api.csproj --configuration Release --output ./publish
 
+      # No publish profile: webapps-deploy uses the OIDC session, and basic-auth publishing is
+      # switched off on the app.
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: app-messaginghub-catalog-dev
-          publish-profile: ${{ secrets.AZURE_CATALOG_API_PUBLISH_PROFILE }}
+          app-name: ${{ env.WEB_APP }}
           package: ./publish
 
+      # scripts/azure-dev.ps1 stop parks the apps between work sessions; the code still deploys,
+      # but there is nothing running to health-check.
+      - name: Check whether the app is stopped
+        id: state
+        run: echo "state=$(az webapp show --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" --query state --output tsv)" >> "$GITHUB_OUTPUT"
+
       - name: Verify deployment health
+        if: steps.state.outputs.state != 'Stopped'
         run: |
           for i in $(seq 1 10); do
             status=$(curl -sS -o /dev/null -m 15 -w "%{http_code}" "${{ vars.CATALOG_API_BASE_URL }}/health" || echo "000")
@@ -189,19 +195,27 @@ jobs:
             sleep 15
           done
 
+          # /health/verbose needs a token now; look in Application Insights for the cause.
           echo "Health check failed after retries"
-          curl -sS -m 15 "${{ vars.CATALOG_API_BASE_URL }}/health/verbose" || true
           exit 1
+
+      - name: Report stopped app
+        if: steps.state.outputs.state == 'Stopped'
+        run: echo "::notice::$WEB_APP is stopped; deployed without a health check. Start it with scripts/azure-dev.ps1 start."
 
   deploy-ingestion-api:
     needs: build-and-test
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     name: Deploy Ingestion.Api
-    environment: azure-dev
 
     permissions:
+      id-token: write
       contents: read
+
+    env:
+      RESOURCE_GROUP: rg-messaginghub-dev
+      WEB_APP: app-messaginghub-ingestion-dev
 
     steps:
       - name: Checkout
@@ -215,14 +229,29 @@ jobs:
       - name: Publish
         run: dotnet publish services/Ingestion/Ingestion.Api/Ingestion.Api.csproj --configuration Release --output ./publish
 
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: app-messaginghub-ingestion-dev
-          publish-profile: ${{ secrets.AZURE_INGESTION_API_PUBLISH_PROFILE }}
+          app-name: ${{ env.WEB_APP }}
           package: ./publish
 
+      - name: Check whether the app is stopped
+        id: state
+        run: echo "state=$(az webapp show --resource-group "$RESOURCE_GROUP" --name "$WEB_APP" --query state --output tsv)" >> "$GITHUB_OUTPUT"
+
+      - name: Report stopped app
+        if: steps.state.outputs.state == 'Stopped'
+        run: echo "::notice::$WEB_APP is stopped; deployed without a health check. Start it with scripts/azure-dev.ps1 start."
+
       - name: Verify deployment health
+        if: steps.state.outputs.state != 'Stopped'
         run: |
           for i in $(seq 1 10); do
             status=$(curl -sS -o /dev/null -m 15 -w "%{http_code}" "${{ vars.INGESTION_API_BASE_URL }}/health" || echo "000")
@@ -234,8 +263,8 @@ jobs:
             sleep 15
           done
 
+          # /health/verbose needs a token now; look in Application Insights for the cause.
           echo "Health check failed after retries"
-          curl -sS -m 15 "${{ vars.INGESTION_API_BASE_URL }}/health/verbose" || true
           exit 1
 
   deploy-processing-functions:
@@ -243,7 +272,6 @@ jobs:
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     name: Deploy Processing.Functions
-    environment: azure-dev
 
     permissions:
       id-token: write
@@ -303,8 +331,17 @@ jobs:
           app-name: ${{ env.FUNCTION_APP }}
           package: ./publish
 
+      - name: Check whether the app is stopped
+        id: state
+        run: echo "state=$(az resource show --resource-group "$RESOURCE_GROUP" --name "$FUNCTION_APP" --resource-type Microsoft.Web/sites --query properties.state --output tsv)" >> "$GITHUB_OUTPUT"
+
+      - name: Report stopped app
+        if: steps.state.outputs.state == 'Stopped'
+        run: echo "::notice::$FUNCTION_APP is stopped; deployed without verifying its triggers. Start it with scripts/azure-dev.ps1 start."
+
       # No HTTP endpoint to health-check, so verify the host indexed both triggers instead.
       - name: Verify functions are registered
+        if: steps.state.outputs.state != 'Stopped'
         run: |
           for i in $(seq 1 10); do
             names=$(az functionapp function list --resource-group "$RESOURCE_GROUP" --name "$FUNCTION_APP" --query "[].name" --output tsv || echo "")

@@ -13,7 +13,6 @@ jobs:
   deploy-infra:
     runs-on: ubuntu-latest
     name: Deploy Infra
-    environment: azure-dev
 
     permissions:
       id-token: write

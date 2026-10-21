@@ -1,6 +1,8 @@
 param location string
 param logAnalyticsWorkspaceName string
 param appInsightsName string
+@description('Daily ingestion cap in GB. 0.15 GB a day stays inside the 5 GB monthly free allowance.')
+param dailyQuotaGb string = '0.15'
 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: logAnalyticsWorkspaceName
@@ -10,6 +12,11 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09
       name: 'PerGB2018'
     }
     retentionInDays: 30
+    // Every request is logged, rejected ones included, so a bot flood would otherwise turn
+    // straight into billed ingestion. Past the cap, ingestion stops until the next UTC day.
+    workspaceCapping: {
+      dailyQuotaGb: json(dailyQuotaGb)
+    }
   }
 }
 

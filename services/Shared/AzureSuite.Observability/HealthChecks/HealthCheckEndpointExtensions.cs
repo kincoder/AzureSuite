@@ -7,17 +7,20 @@ using Microsoft.Extensions.Primitives;
 
 namespace AzureSuite.Observability.HealthChecks;
 
-/// <summary>Wires a consistent pair of health endpoints for every service: a minimal one
-/// for uptime probes and a verbose one for diagnosing which specific check failed. Both
-/// accept an optional <c>?tags=</c> query string (comma-separated) to run only the checks
-/// carrying at least one of the requested tags — e.g. <c>/health?tags=data</c> to check
-/// just the catalog-populated check without also touching SQL connectivity.
+/// <summary>Wires a consistent pair of health endpoints for every service:
+/// <list type="bullet">
+/// <item><c>/health</c> is an anonymous liveness probe. It runs no checks, so anonymous
+/// traffic (uptime probes, bots) never reaches SQL or other dependencies: on the serverless
+/// free offer, every probe that touched SQL kept it awake and spent the monthly allowance.</item>
+/// <item><c>/health/verbose</c> needs a signed-in caller and runs the registered checks, with
+/// an optional <c>?tags=</c> query string (comma-separated) to run only the checks carrying at
+/// least one of the requested tags — e.g. <c>?tags=data</c> to check just the catalog-populated
+/// check without also touching SQL connectivity.</item>
+/// </list>
 ///
 /// Bypasses <c>MapHealthChecks</c> deliberately: its <c>Predicate</c> is fixed at startup,
 /// so it can't filter per-request from a query string. Calling <see cref="HealthCheckService"/>
-/// directly gives us that.
-///
-/// Both endpoints are anonymous: services deny by default, and uptime probes carry no token.</summary>
+/// directly gives us that.</summary>
 public static class HealthCheckEndpointExtensions
 {
     public static IEndpointRouteBuilder MapAzureSuiteHealthChecks(this IEndpointRouteBuilder endpoints, string basePath = "/health")
@@ -28,14 +31,16 @@ public static class HealthCheckEndpointExtensions
 
         endpoints.MapGet($"{basePath}/verbose", (HttpContext context, HealthCheckService healthCheckService) =>
             HandleAsync(context, healthCheckService, verbose: true))
-            .AllowAnonymous();
+            .RequireAuthorization();
 
         return endpoints;
     }
 
     private static async Task HandleAsync(HttpContext context, HealthCheckService healthCheckService, bool verbose)
     {
-        var predicate = BuildTagPredicate(context.Request.Query["tags"]);
+        var predicate = verbose
+            ? BuildTagPredicate(context.Request.Query["tags"])
+            : _ => false;
         var report = await healthCheckService.CheckHealthAsync(predicate, context.RequestAborted);
 
         context.Response.StatusCode = report.Status == HealthStatus.Unhealthy

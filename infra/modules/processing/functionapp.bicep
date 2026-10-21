@@ -78,8 +78,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         }
       }
       scaleAndConcurrency: {
-        // 40 is the minimum Flex allows; 512 MB is the smallest (cheapest) instance size.
-        maximumInstanceCount: 40
+        // A hard ceiling on what a message flood can cost: Flex bills past its free grant and
+        // would otherwise scale out to the default 100. One instance is plenty for this
+        // workload. 512 MB is the smallest (cheapest) instance size.
+        maximumInstanceCount: 1
         instanceMemoryMB: 512
       }
       // On Flex the runtime is declared here, not through FUNCTIONS_WORKER_RUNTIME /

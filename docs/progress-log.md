@@ -3,6 +3,33 @@
 This is a study-case C# solution to hands-on learn most of Azure via IaC (Bicep) + CI/CD
 (GitHub Actions), built around a **financial messaging hub** domain.
 
+## Cost and exposure hardening; repo goes private (2026-10-21)
+
+Branch `feature/cost-and-exposure-hardening`. Prompted by bots hitting public endpoints to run
+up bills. Audit result: F1, SWA Free, Cosmos (1000 RU/s) and SQL (`AutoPause`) already
+hard-stop at their free limits. The gaps were the resources that **bill** past theirs, plus
+password paths. Details in `docs/infrastructure.md` → *Cost and exposure guardrails*.
+
+- **Cost ceilings:** Log Analytics daily cap 0.15 GB; Function App `maximumInstanceCount: 1`
+  (Flex now allows 1, the old "40 is the minimum" was out of date); subscription budget €5 with
+  email alerts (created by hand, covers AzureHost too).
+- **Health:** anonymous `/health` runs no checks. Before, every probe ran a SQL query, so a bot
+  could keep the serverless DB awake until the free allowance ran out and it paused for the
+  rest of the month. `/health/verbose` needs a signed-in caller.
+- **Passwords removed:** SQL is Entra-only (API via managed identity, CI as a contained user
+  for migrations; the `AllowAzureServices` rule admits *any* Azure IP, so the `sqladmin`
+  password was guessable from anywhere). Service Bus SAS keys off. App Service basic-auth
+  publishing off; deploys use OIDC instead of publish profiles.
+- **Production on Azure:** both APIs ran as `Development` (developer exception page, anonymous
+  OpenAPI). Now `Production`; Scalar is local only, and the web footer links to it only when
+  the web app itself runs as Development.
+- **Private repo on GitHub Free:** no environments, environment secrets/variables or branch
+  protection there. Config moved to repo-level secrets/variables; "only master deploys" moved
+  to the federated credential subject `…:ref:refs/heads/master`. Branch protection is given
+  up (accepted: the owner reviews and merges every PR).
+- **`scripts/azure-dev.ps1 stop|start|status`** parks the App Services and Function App between
+  work sessions (stopped apps answer 403). CI deploys to parked apps and skips the health check.
+
 ## API security — Entra ID app roles (2026-10-16)
 
 Branch `feature/api-security`. Both APIs were anonymous on Azure; now every business endpoint

@@ -42,12 +42,26 @@ namespace Ingestion.Api.Tests
             response.StatusCode.Should().Be(HttpStatusCode.Created);
         }
 
-        [Theory]
-        [InlineData("/health")]
-        [InlineData("/health/verbose")]
-        public async Task Health_Anonymous_Returns200(string path)
+        [Fact]
+        public async Task Health_Anonymous_Returns200()
         {
-            var response = await _factory.CreateClient().GetAsync(path);
+            var response = await _factory.CreateClient().GetAsync("/health");
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        [Fact]
+        public async Task HealthVerbose_Anonymous_Returns401()
+        {
+            var response = await _factory.CreateClient().GetAsync("/health/verbose");
+
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        }
+
+        [Fact]
+        public async Task HealthVerbose_SignedInWithoutRoles_Returns200()
+        {
+            var response = await _factory.CreateClientWithRoles("").GetAsync("/health/verbose");
 
             response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
