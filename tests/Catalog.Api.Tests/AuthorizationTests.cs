@@ -102,13 +102,30 @@ namespace Catalog.Api.Tests
         }
 
         [Fact]
-        public async Task Health_Anonymous_IsNotUnauthorized()
+        public async Task Health_Anonymous_Returns200()
         {
-            // The catalog-populated check may report Unhealthy (503) on an empty test database;
-            // the point here is only that no token is needed.
             var response = await _factory.CreateClient().GetAsync("/health?tags=db");
 
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        [Fact]
+        public async Task HealthVerbose_Anonymous_Returns401()
+        {
+            var response = await _factory.CreateClient().GetAsync("/health/verbose");
+
+            response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        }
+
+        [Fact]
+        public async Task HealthVerbose_SignedInWithoutRoles_IsNotUnauthorized()
+        {
+            // The catalog-populated check may report Unhealthy (503) on an empty test database;
+            // the point here is only that any signed-in caller gets past authorization.
+            var response = await _factory.CreateClientWithRoles("").GetAsync("/health/verbose?tags=db");
+
             response.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+            response.StatusCode.Should().NotBe(HttpStatusCode.Forbidden);
         }
     }
 }
