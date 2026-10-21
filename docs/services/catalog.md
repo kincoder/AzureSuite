@@ -24,7 +24,7 @@ Catalog is static data. It never changes by itself, only through these endpoints
 | `Catalog.Domain` | Entities `MessageType`, `Client`, `Route`; value objects `MessageTypeName`, `MessageTypeVersion`. Rules live here. |
 | `Catalog.Application` | MediatR commands and queries, one folder each under `{Clients,Routes,MessageTypes}/{Commands,Queries}/<Name>/` |
 | `Catalog.Infrastructure` | EF Core `CatalogDbContext`, migrations, repositories |
-| `Catalog.Api` | Minimal API endpoints, CORS for the web app, Scalar UI at `/scalar/v1`, health at `/health` |
+| `Catalog.Api` | Minimal API endpoints, CORS for the web app, Scalar UI at `/scalar/v1` (local Development only), health at `/health` |
 
 ## API
 
@@ -38,7 +38,8 @@ Catalog is static data. It never changes by itself, only through these endpoints
 | `POST` / `GET` | `/routes` | Create / list routes | POST `CatalogWrite`, GET `CatalogRead` |
 | `GET` / `PUT` / `DELETE` | `/routes/{id}` | Get / update / delete a route | GET `CatalogRead`, PUT/DELETE `CatalogWrite` |
 | `GET` | `/routes/lookup?clientId=&messageType=&version=` | → `{ queueNames[] }`; an empty list means the client isn't authorized | `CatalogRead` |
-| `GET` | `/health`, `/health/verbose` | Health checks | anonymous |
+| `GET` | `/health` | Liveness: runs no checks, so it never touches SQL | anonymous |
+| `GET` | `/health/verbose?tags=` | Runs the checks (`db`, `data`) and reports each | any signed-in caller |
 
 `validate` and `routes/lookup` are kept separate on purpose. One checks the payload's shape,
 the other checks the client's authorization. Callers can use either one alone.

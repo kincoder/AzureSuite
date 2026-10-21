@@ -29,11 +29,11 @@ Vertical slices: each feature owns its pages, API client and contracts.
 ## Configuration
 
 `wwwroot/appsettings.json` contains placeholders (`__CATALOG_API_BASE_URL__` and so on). The
-`deploy-web` job replaces them with values from the `azure-dev` GitHub environment.
+`deploy-web` job replaces them with repository variables of the same names.
 `appsettings.Development.json` points at the local APIs (`https://localhost:7184` and `:7185`).
 The sign-in values (`AzureAd:Authority`, `AzureAd:ClientId`, `ApiScope`) follow the same
 pattern: `__AZURE_AD_TENANT_ID__`, `__AZURE_AD_WEB_CLIENT_ID__` and `__API_SCOPE__` in
-`appsettings.json`, filled in from the `azure-dev` variables of the same names. None of them are
+`appsettings.json`, filled in from the repository variables of the same names. None of them are
 secrets.
 
 ## Sign-in and roles
