@@ -8,5 +8,13 @@ namespace AzureSuite.Web.Blazor.Configuration
     }
 
     /// <summary>The APIs the footer links to. The footer renders nothing when the list is empty.</summary>
-    public record ApiReferenceLinks(IReadOnlyList<ApiEndpoint> Apis);
+    public record ApiReferenceLinks(IReadOnlyList<ApiEndpoint> Apis)
+    {
+        /// <summary>Links every API in Development and none otherwise, so the footer never links
+        /// to a 404. The APIs map Scalar only when they run as Development, which they do locally
+        /// alongside this app, and not on Azure, where they run as Production (see
+        /// infra/modules/*/appservice.bicep) and this app as Production on Static Web Apps.</summary>
+        public static ApiReferenceLinks ServedBy(IEnumerable<ApiEndpoint> apis, bool isDevelopment) =>
+            new(isDevelopment ? apis.ToList() : []);
+    }
 }

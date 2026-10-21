@@ -23,7 +23,7 @@ Vertical slices: each feature owns its pages, API client and contracts.
 |---|---|
 | `Features/Catalog/` | Pages for message types, clients and routes (list and register); `CatalogApiClient` |
 | `Features/Ingestion/` | `SubmitMessage` page; `IngestionApiClient` |
-| `Layout/` | `MainLayout`, `NavMenu`, `AppFooter` (links to each API's Scalar page), `AppErrorBoundary` (logs and recovers on navigation) |
+| `Layout/` | `MainLayout`, `NavMenu`, `AppFooter` (links to each API's Scalar page, in Development only), `AppErrorBoundary` (logs and recovers on navigation) |
 | `UI/` | Shared components (`AppButton`, `DataTable`, `PageHeader`, `EmptyState`, `ErrorState`, `SkeletonRow`, `AppBadge`), `ClientTelemetryLogger` (browser → App Insights) |
 
 ## Configuration
