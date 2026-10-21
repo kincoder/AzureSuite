@@ -1,10 +1,10 @@
 targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
-param sqlAdminLogin string
-@secure()
-param sqlAdminPassword string
+@description('Object id of the owner: SQL Entra admin and holder of the owner data-plane roles.')
 param principalId string
+@description('Display login of the owner, shown as the SQL Entra admin.')
+param principalLogin string
 
 module sharedAppInsights 'modules/shared/appinsights.bicep' = {
   name: 'sharedAppInsights'
@@ -23,13 +23,11 @@ module catalogSql 'modules/catalog/sql.bicep' = {
   params: {
     location: location
     sqlServerName: 'sql-messaginghub-catalog-dev'
-    sqlAdminLogin: sqlAdminLogin
-    sqlAdminPassword: sqlAdminPassword
     databaseName: 'catalog'
+    entraAdminObjectId: principalId
+    entraAdminLogin: principalLogin
   }
 }
-
-var catalogDbConnectionString = 'Server=tcp:${catalogSql.outputs.sqlServerFqdn},1433;Initial Catalog=catalog;User ID=${sqlAdminLogin};Password=${sqlAdminPassword};Encrypt=true;'
 
 module catalogApi 'modules/catalog/appservice.bicep' = {
   name: 'catalogApi'
@@ -38,7 +36,8 @@ module catalogApi 'modules/catalog/appservice.bicep' = {
     appServicePlanName: 'asp-messaginghub-catalog-dev'
     webAppName: 'app-messaginghub-catalog-dev'
     appInsightsConnectionString: sharedAppInsights.outputs.connectionString
-    keyVaultName: catalogKeyVaultName
+    sqlServerFqdn: catalogSql.outputs.sqlServerFqdn
+    databaseName: 'catalog'
   }
 }
 
@@ -48,8 +47,6 @@ module catalogKeyVault 'modules/catalog/keyvault.bicep' = {
     location: location
     keyVaultName: catalogKeyVaultName
     principalId: principalId
-    apiPrincipalId: catalogApi.outputs.principalId
-    connectionStringSecretValue: catalogDbConnectionString
   }
 }
 

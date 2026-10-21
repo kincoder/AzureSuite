@@ -10,6 +10,12 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
     name: 'Basic'
     tier: 'Basic'
   }
+  properties: {
+    // Managed identity only: with SAS keys off there is no connection string that could leak
+    // and let someone fill the queue (each message is a billed operation and a function run).
+    disableLocalAuth: true
+    minimumTlsVersion: '1.2'
+  }
 }
 
 resource queue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
